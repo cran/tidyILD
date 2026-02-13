@@ -1,0 +1,16 @@
+ver <- if (!is.null(meta) && "Version" %in% names(meta)) meta$Version else "0.0.1"
+bib <- bibentry(
+  bibtype = "Manual",
+  title = "tidyILD: Tidy Intensive Longitudinal Data Analysis",
+  author = c(person("Alex", "Litovchenko")),
+  year = 2025,
+  url = "https://github.com/alitovchenko/tidyILD",
+  textVersion = paste0(
+    "Litovchenko A (2025). tidyILD: Tidy Intensive Longitudinal Data Analysis. ",
+    "R package version ", ver, ", ",
+    "<https://github.com/alitovchenko/tidyILD>."
+  ),
+  header = "To cite package 'tidyILD' in publications use:",
+  footer = "For more information see https://github.com/alitovchenko/tidyILD."
+)
+bib

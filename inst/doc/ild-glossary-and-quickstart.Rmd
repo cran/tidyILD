@@ -1,0 +1,52 @@
+---
+title: "Glossary and quick-start checklist"
+author: "tidyILD authors"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Glossary and quick-start checklist}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(tidyILD)
+```
+
+## Glossary of main functions
+
+| Function | Purpose |
+|----------|---------|
+| [ild_prepare()] | Turn a data frame into an ILD object: parse time, sort, add `.ild_*` columns and spacing metadata. |
+| [ild_summary()] | One-shot summary: n persons, n observations, time range, spacing stats, gaps. |
+| [ild_center()] | Within-between decomposition: add `_bp` (person mean) and `_wp` (within-person) columns. |
+| [ild_lag()] | Spacing-aware lags: index, gap_aware, or time_window with a resolution rule. |
+| [ild_check_lags()] | Audit lag columns: count valid vs invalid (e.g. beyond `max_gap`). |
+| [ild_spacing_class()] | Classify spacing as "regular-ish" or "irregular-ish" (overridable). |
+| [ild_missing_pattern()] | Tabular and (via [ild_plot()] type `"missingness"`) heatmap of missingness. |
+| [ild_lme()] | Fit mixed-effects model: lmer (no AR) or nlme with AR1/CAR1. |
+| [ild_diagnostics()] | Residual ACF, residuals vs fitted/time, Q-Q; optional AR parameter. |
+| [ild_plot()] | Trajectory, heatmap, gaps, missingness, fitted vs observed, residual ACF. |
+| [ild_simulate()] | Simulate simple ILD for examples and tests. |
+
+## Quick-start checklist
+
+1. **Prepare**: `x <- ild_prepare(data, id = "id", time = "time", gap_threshold = ...)`
+2. **Inspect**: `ild_summary(x)`, `ild_plot(x, type = "gaps")`, `ild_plot(x, type = "missingness")`
+3. **Center**: `x <- ild_center(x, var1, var2)` (adds `_bp` and `_wp`)
+4. **Lag**: `x <- ild_lag(x, var1, mode = "gap_aware", max_gap = ...)` or `mode = "time_window", window = ...`
+5. **Check lags** (optional): `ild_check_lags(x, lag_vars = c("var1_lag1"))`
+6. **Fit**: `fit <- ild_lme(formula, data = x, ar1 = TRUE)` (or `ar1 = FALSE`)
+7. **Diagnose**: `ild_diagnostics(fit)` and `ild_plot(fit, type = "fitted")`, `type = "residual_acf"`
+
+## Comparison with generic workflows
+
+| Task | Generic R | tidyILD |
+|------|-----------|---------|
+| Time structure | Manual sort, manual lags, no gap checks | [ild_prepare()] + [ild_lag()] with gap or time-window rules |
+| Within-between | Manual person means, ad hoc naming | [ild_center()] with consistent `_bp`/`_wp` |
+| Residual correlation | nlme syntax heavy; easy to mis-specify | [ild_lme(ar1 = TRUE)] with auto or override AR1/CAR1 |
+| Lag validity | Often unchecked | [ild_check_lags()], gap_aware and time_window modes |
+
+Same goals, less code and fewer silent errors.

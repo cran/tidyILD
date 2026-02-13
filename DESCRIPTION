@@ -1,0 +1,27 @@
+Package: tidyILD
+Title: Tidy Intensive Longitudinal Data Analysis
+Version: 0.0.1
+Authors@R: person(given = "Alex", family = "Litovchenko", role = c("aut", "cre"), email = "al4877@columbia.edu")
+Description: An opinionated, tidyverse-native toolkit for intensive longitudinal
+  data (ILD). Encodes time structure, enforces within-between decomposition,
+  provides spacing-aware lags, and integrates diagnostics and visualization.
+  Use ild_prepare(), ild_center(), ild_lag(), and related functions for a
+  unified pipeline from raw EMA/diary data to interpretable models.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends: R (>= 4.0.0)
+Imports: tibble, dplyr, lubridate, rlang, lme4, nlme, ggplot2
+Suggests: testthat (>= 3.0.0), roxygen2, knitr, broom.mixed
+VignetteBuilder: knitr
+Collate: 'ild-class.R' 'utils.R' 'ild_prepare.R' 'ild_summary.R'
+        'ild_center.R' 'ild_lag.R' 'ild_spacing_class.R'
+        'ild_missing_pattern.R' 'ild_check_lags.R' 'ild_lme.R'
+        'ild_diagnostics.R' 'ild_manifest.R' 'ild_plot.R'
+        'ild_simulate.R' 'data.R' 'broom.R'
+RoxygenNote: 7.3.3
+NeedsCompilation: no
+Packaged: 2026-02-11 19:46:04 UTC; alexanderlitovchenko
+Author: Alex Litovchenko [aut, cre]
+Maintainer: Alex Litovchenko <al4877@columbia.edu>
+Repository: CRAN
+Date/Publication: 2026-02-13 16:40:02 UTC

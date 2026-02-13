@@ -1,0 +1,18 @@
+#' Example EMA-style intensive longitudinal dataset
+#'
+#' A small simulated dataset with 10 persons and 14 observations per person,
+#' irregular timing, and two variables (mood, stress). For use in examples and
+#' vignettes. Use [ild_prepare()] to convert to an ILD object.
+#'
+#' @format A data frame with 140 rows and 4 columns:
+#' \describe{
+#'   \item{id}{Person identifier (1--10).}
+#'   \item{time}{POSIXct timestamp (irregular within person).}
+#'   \item{mood}{Simulated mood score.}
+#'   \item{stress}{Simulated stress score.}
+#' }
+#' @source Simulated with a fixed seed (12345) for reproducibility.
+#' @docType data
+#' @name ema_example
+#' @keywords datasets
+NULL

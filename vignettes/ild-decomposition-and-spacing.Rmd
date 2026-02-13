@@ -1,0 +1,58 @@
+---
+title: "Within-between decomposition and handling irregular spacing"
+author: "tidyILD authors"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Within-between decomposition and irregular spacing}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 4
+)
+```
+
+## Within-between decomposition
+
+In intensive longitudinal data, predictors often vary both **between persons** (e.g. some people are higher on average) and **within person** (e.g. momentary fluctuations). Using the raw variable in a multilevel model conflates these two sources. tidyILD's `ild_center()` makes the decomposition explicit.
+
+- **Between-person (BP)**: person mean of the variable.
+- **Within-person (WP)**: deviation from the person mean (variable minus BP).
+
+Use the WP component at level 1 (within-person effect) and the BP component at level 2 or in cross-level interactions to avoid ecological fallacy and conflation bias.
+
+```{r center}
+library(tidyILD)
+d <- ild_simulate(n_id = 5, n_obs_per = 8, seed = 1)
+x <- ild_prepare(d, id = "id", time = "time")
+x <- ild_center(x, y)
+# New columns: y_bp (person mean), y_wp (deviation from person mean)
+head(x[, c("id", "y", "y_bp", "y_wp")])
+```
+
+## Irregular spacing and lags
+
+ILD often has irregular time spacing (e.g. EMA prompts at random times). Using `dplyr::lag()` assumes equal spacing and can produce misaligned lags. Use `ild_lag()` with `mode = "gap_aware"` so that lags are set to NA when the time distance to the previous observation exceeds a threshold.
+
+```{r lag}
+d <- ild_simulate(n_id = 3, n_obs_per = 6, irregular = TRUE, seed = 2)
+x <- ild_prepare(d, id = "id", time = "time")
+x <- ild_lag(x, y, mode = "gap_aware", max_gap = 4000)
+# Compare: .ild_dt (interval) and y_lag1 (NA after large gaps)
+x[, c(".ild_id", ".ild_dt", "y", "y_lag1")]
+```
+
+## Spacing classification
+
+`ild_spacing_class()` returns "regular-ish" or "irregular-ish" based on the variability of intervals and the proportion of large gaps. The rule is overridable. This classification can inform the choice of correlation structure in `ild_lme()` (AR1 for regular-ish, CAR1 for irregular-ish).
+
+```{r spacing}
+ild_summary(x)$spacing
+ild_spacing_class(x)
+```
