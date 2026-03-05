@@ -4,7 +4,13 @@
 \alias{ild_diagnostics}
 \title{Residual diagnostics for an ILD model}
 \usage{
-ild_diagnostics(object, data = NULL, by_id = TRUE, ...)
+ild_diagnostics(
+  object,
+  data = NULL,
+  type = c("residual_acf", "residual_time", "qq"),
+  by_id = TRUE,
+  ...
+)
 }
 \arguments{
 \item{object}{A fitted model from [ild_lme()] (or an object with
@@ -13,16 +19,41 @@ ild_diagnostics(object, data = NULL, by_id = TRUE, ...)
 
 \item{data}{Optional. ILD data (required if `object` is not from [ild_lme()]).}
 
+\item{type}{Character vector. Which diagnostics to compute: `"residual_acf"`,
+`"residual_time"` (residuals vs time and vs fitted), `"qq"`. Default is all three.}
+
 \item{by_id}{Logical. If `TRUE`, compute ACF within each person (default `TRUE`).}
 
 \item{...}{Unused.}
 }
 \value{
-A list with: `acf` (ACF values or list by id), `residuals`, `fitted`,
-  `id`, `time` (or `seq`), `ar1_param` (if applicable), and `plot` (a ggplot or list of plots).
+A list of class `ild_diagnostics` with: `meta` (engine, ar1, id_col, time_col,
+  n_obs, n_id, type, by_id), `data` (list with `residuals` = tibble of .ild_id, .ild_time,
+  response (name from formula), .resid, .fitted; \code{data$residuals} always exists, \code{.resid} is always filled,
+  \code{.fitted} is returned when it can be computed without refitting, otherwise NA),
+  `stats` (list with `acf` = list(pooled = tibble, by_id = list) when requested,
+  `ar1_param` = numeric or NULL for lme). Use [plot_ild_diagnostics()] for plots.
 }
 \description{
 Computes residual ACF (by person and/or pooled), residual vs fitted,
-residual vs time, and optional Q-Q. For `ild_lme` models with `ar1 = TRUE`,
-reports the estimated AR/CAR parameter.
+residual vs time, and optional Q-Q. Use `type` to request only specific
+diagnostics. For `ild_lme` models with `ar1 = TRUE`, the estimated AR/CAR
+parameter is reported when `type` includes `"residual_acf"`.
+}
+\details{
+The return value follows a stable schema: `meta` (engine, ar1, id/time columns,
+n_obs, n_id), `data$residuals` (tibble with `.ild_id`, `.ild_time`, response, `.resid`, `.fitted`),
+and `stats` (e.g. `acf`, `ar1_param`). Plots are not stored in the object; use
+[plot_ild_diagnostics()] to generate them from a diagnostics object. The column
+\code{.resid} is always filled; \code{.fitted} is filled when it can be computed
+without refitting, otherwise it is \code{NA} (same for both engines and all \code{type} values).
+
+Residual ACF is computed over the ordered observation sequence within person;
+it does not adjust for irregular time gaps.
+}
+\examples{
+x <- ild_prepare(ild_simulate(n_id = 3, n_obs_per = 6, seed = 1), id = "id", time = "time")
+fit <- ild_lme(y ~ 1 + (1 | id), data = x, ar1 = FALSE, warn_no_ar1 = FALSE)
+diag <- ild_diagnostics(fit, type = c("residual_acf", "qq"))
+plot_ild_diagnostics(diag)
 }

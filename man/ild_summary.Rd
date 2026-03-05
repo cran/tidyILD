@@ -10,9 +10,10 @@ ild_summary(x)
 \item{x}{An ILD object (see [is_ild()]).}
 }
 \value{
-A list with elements: `n_units`, `n_obs`, `time_range` (min/max of
-  `.ild_time_num`), `spacing` (from metadata), `n_gaps` (sum of `.ild_gap`
-  TRUE), `pct_gap` (from spacing if available).
+A list with elements: \code{summary} (one-row tibble with n_id, n_obs,
+  time_min, time_max, prop_gap, median_dt_sec, iqr_dt_sec), \code{n_units},
+  \code{n_obs}, \code{time_range}, \code{spacing}, \code{n_gaps}, \code{pct_gap}.
+  The \code{summary} tibble is the primary contract for programmatic use.
 }
 \description{
 Reports number of persons, number of observations, time range,

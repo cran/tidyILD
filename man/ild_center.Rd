@@ -4,25 +4,31 @@
 \alias{ild_center}
 \title{Within-person and between-person decomposition (centering)}
 \usage{
-ild_center(x, ..., type = c("person_mean", "grand_mean"))
+ild_center(
+  x,
+  ...,
+  type = c("person_mean", "grand_mean"),
+  naming = c("suffix", "prefix")
+)
 }
 \arguments{
 \item{x}{An ILD object (see [is_ild()]).}
 
 \item{...}{Variables to center (tidy-select). Unquoted names or a single
-character vector of column names.}
+character vector of column names. Must be numeric.}
 
 \item{type}{Character. `"person_mean"` (default) for person-mean centering
 (x_bp, x_wp); `"grand_mean"` for grand-mean centering (x_gm, x_wp_gm).}
+
+\item{naming}{Character. `"suffix"` (default): new columns \code{var_bp}, \code{var_wp};
+\code{"prefix"}: new columns \code{BP_var}, \code{WP_var}.}
 }
 \value{
-The same ILD tibble with additional columns: for each variable
-  `v`, `v_bp` (person mean), `v_wp` (v - v_bp). If `type = "grand_mean"`,
-  also `v_gm` and optionally `v_wp_gm`. ILD attributes are preserved.
+The same ILD tibble with additional columns. ILD attributes are preserved.
 }
 \description{
 For each selected variable, computes the person mean (between-person
 component) and the within-person deviation (variable minus person mean).
 Use `*_wp` at level-1 and `*_bp` at level-2 or in cross-level interactions
-to avoid ecological fallacy and conflation bias.
+to avoid ecological fallacy and conflation bias. Selected variables must be numeric.
 }

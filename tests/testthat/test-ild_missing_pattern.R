@@ -6,7 +6,9 @@ test_that("ild_missing_pattern returns by_id and overall", {
   )
   x <- ild_prepare(d, id = "id", time = "time")
   mp <- ild_missing_pattern(x, vars = "x")
-  expect_named(mp, c("by_id", "overall", "n_complete", "vars"))
+  expect_named(mp, c("summary", "plot", "by_id", "overall", "n_complete", "vars"))
+  expect_s3_class(mp$summary, "tbl_df")
+  expect_true(inherits(mp$plot, "gg"))
   expect_equal(nrow(mp$by_id), 2)
   expect_equal(mp$overall$x$n_na, 1)
   expect_equal(mp$n_complete, 3)
@@ -18,4 +20,17 @@ test_that("ild_missing_pattern with no missing", {
   mp <- ild_missing_pattern(x, vars = "x")
   expect_equal(mp$overall$x$n_na, 0)
   expect_equal(mp$n_complete, 4)
+})
+
+test_that("ild_missing_pattern with max_ids and seed subsets persons", {
+  d <- data.frame(
+    id = rep(1:5, each = 3),
+    time = as.POSIXct(rep(0:2, 5) + rep((0:4) * 100, each = 3), origin = "1970-01-01"),
+    x = 1:15
+  )
+  x <- ild_prepare(d, id = "id", time = "time")
+  mp <- ild_missing_pattern(x, vars = "x", max_ids = 2, seed = 42)
+  expect_equal(nrow(mp$by_id), 2)
+  expect_equal(nrow(mp$summary), 1)
+  expect_true(inherits(mp$plot, "gg"))
 })

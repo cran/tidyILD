@@ -53,6 +53,17 @@ test_that("ild_lag preserves ILD attributes", {
   expect_true(is_ild(out))
 })
 
+test_that("ild_lag gap_aware uses max_gap from metadata when max_gap is NULL", {
+  d <- data.frame(
+    id = c(1, 1, 1, 1),
+    time = as.POSIXct(c(0, 5, 10, 100), origin = "1970-01-01"),
+    x = c(1, 2, 3, 4)
+  )
+  x <- ild_prepare(d, id = "id", time = "time", gap_threshold = 20)
+  out <- ild_lag(x, x, n = 1, mode = "gap_aware", max_gap = NULL)
+  expect_equal(out$x_lag1, c(NA, 1, 2, NA))
+})
+
 test_that("ild_lag n=2 lags by two rows", {
   d <- data.frame(
     id = c(1, 1, 1, 1),

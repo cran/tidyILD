@@ -1,0 +1,30 @@
+test_that("ild_design_check returns expected structure", {
+  d <- ild_simulate(n_id = 8, n_obs_per = 6, seed = 1)
+  x <- ild_prepare(d, id = "id", time = "time")
+  out <- ild_design_check(x)
+  expect_s3_class(out, "ild_design_check")
+  expect_named(out, c("summary", "spacing_class", "spacing", "recommendation", "wp_bp", "missingness"))
+  expect_s3_class(out$summary, "tbl_df")
+  expect_equal(out$spacing_class, out$spacing$spacing_class)
+  expect_true(grepl("AR1|CAR1", out$recommendation))
+  expect_null(out$wp_bp)
+  expect_null(out$missingness)
+})
+
+test_that("ild_design_check with vars includes wp_bp and missingness", {
+  d <- ild_simulate(n_id = 5, n_obs_per = 6, seed = 2)
+  x <- ild_prepare(d, id = "id", time = "time")
+  out <- ild_design_check(x, vars = "y")
+  expect_s3_class(out$wp_bp, "tbl_df")
+  expect_true(all(c("variable", "wp_var", "bp_var", "ratio") %in% names(out$wp_bp)))
+  expect_true(is.list(out$missingness))
+  expect_named(out$missingness, c("summary", "pct_na"))
+})
+
+test_that("print.ild_design_check runs without error", {
+  d <- ild_simulate(n_id = 4, n_obs_per = 5, seed = 3)
+  x <- ild_prepare(d, id = "id", time = "time")
+  out <- ild_design_check(x, vars = "y")
+  expect_output(print(out), "Spacing class")
+  expect_output(print(out), "Recommendation")
+})

@@ -11,6 +11,7 @@ ild_lme(
   correlation_class = c("auto", "AR1", "CAR1"),
   random = ~1 | .ild_id,
   warn_no_ar1 = TRUE,
+  warn_uncentered = TRUE,
   ...
 )
 }
@@ -34,13 +35,18 @@ to choose CAR1 (irregular-ish) or AR1 (regular-ish). Use `"CAR1"` or
 \item{warn_no_ar1}{If `TRUE` (default), warn when `ar1 = FALSE` that
 temporal autocorrelation is not modeled.}
 
+\item{warn_uncentered}{If `TRUE` (default), warn when a predictor in the
+formula varies both within and between persons but is not decomposed
+(no \code{_wp}/\code{_bp}); suggests using [ild_center()].}
+
 \item{...}{Passed to [lme4::lmer()] or [nlme::lme()].}
 }
 \value{
 A fitted model object (class `lmerMod` or `lme`) with attribute
   `ild_data` (the ILD data) and `ild_ar1` (logical). When `ar1 = TRUE`,
-  the returned object has class `ild_lme` prepended for [ild_diagnostics()]
-  and [ild_plot()].
+  the returned object has class `ild_lme` prepended and attribute
+  `ild_random_resolved` (the formula actually passed to nlme, e.g. `~ 1 | M2ID`).
+  See [ild_diagnostics()] and [ild_plot()].
 }
 \description{
 When `ar1 = FALSE`, fits with [lme4::lmer()] (no residual correlation).
@@ -48,4 +54,19 @@ When `ar1 = TRUE`, fits with [nlme::lme()] using a residual correlation
 structure: CAR1 (continuous-time) by default for irregular spacing,
 or AR1 when spacing is regular-ish. Use [ild_spacing_class()] to inform
 the choice; override with `correlation_class`.
+}
+\examples{
+# lme4 path: formula includes random effects
+set.seed(1)
+dat <- ild_simulate(n_id = 5, n_obs_per = 6, seed = 1)
+dat <- ild_prepare(dat, id = "id", time = "time")
+dat <- ild_center(dat, y)
+fit_lmer <- ild_lme(y ~ y_bp + y_wp + (1 | id), data = dat,
+                    ar1 = FALSE, warn_no_ar1 = FALSE)
+# nlme path (may not converge on all platforms; see ?nlme::lme)
+\dontrun{
+fit_lme <- ild_lme(y ~ y_bp + y_wp, data = dat,
+                   random = ~ 1 | id, ar1 = TRUE)
+}
+
 }

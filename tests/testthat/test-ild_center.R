@@ -39,3 +39,18 @@ test_that("ild_center grand_mean adds _gm and _wp_gm", {
   expect_true("x_wp_gm" %in% names(out))
   expect_equal(unique(out$x_gm), 2.5)
 })
+
+test_that("ild_center fails on non-numeric variable", {
+  d <- data.frame(id = c(1, 1, 2, 2), time = as.POSIXct(0:3, origin = "1970-01-01"), x = c("a", "b", "c", "d"))
+  x <- ild_prepare(d, id = "id", time = "time")
+  expect_error(ild_center(x, x), "not numeric")
+})
+
+test_that("ild_center naming prefix produces BP_var and WP_var", {
+  d <- data.frame(id = c(1, 1, 2, 2), time = as.POSIXct(0:3, origin = "1970-01-01"), x = c(10, 12, 20, 22))
+  x <- ild_prepare(d, id = "id", time = "time")
+  out <- ild_center(x, x, naming = "prefix")
+  expect_true("BP_x" %in% names(out))
+  expect_true("WP_x" %in% names(out))
+  expect_equal(unique(out$BP_x[out$.ild_id == 1]), 11)
+})

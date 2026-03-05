@@ -53,7 +53,7 @@ test_that("ild_bundle preserves user-supplied manifest and label", {
 })
 
 test_that("ild_bundle round-trip via saveRDS preserves structure", {
-  skip_on_cran()
+  skip_on_cran()  # file I/O; run locally and in CI
   tf <- tempfile(fileext = ".rds")
   on.exit(unlink(tf, force = TRUE))
   b <- ild_bundle(1 + 1, manifest = ild_manifest(include_session = FALSE), label = "x")

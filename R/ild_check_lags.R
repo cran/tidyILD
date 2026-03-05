@@ -8,24 +8,23 @@
 #' @param x An ILD object (see [is_ild()]) that contains lag columns
 #'   (e.g. from [ild_lag()] with \code{mode = "gap_aware"}).
 #' @param lag_vars Character vector of lag column names (e.g. \code{"y_lag1"}).
-#'   If \code{NULL}, attempts to detect columns ending in \code{_lag{n}}.
+#'   If \code{NULL}, attempts to detect columns ending in \code{_lag{n}} or \code{_lag_window}.
 #' @param max_gap Numeric. Threshold used to define invalid (same units as
 #'   \code{.ild_time_num}). If \code{NULL}, uses \code{ild_meta(x)$ild_gap_threshold}.
-#' @return A data frame with one row per lag variable: \code{var}, \code{n_valid},
-#'   \code{n_invalid}, \code{n_first} (rows that are first per person, so no lag),
-#'   \code{n_total}, \code{pct_valid} (among rows that could have a lag, i.e. excluding first).
+#' @return A data frame with one row per lag variable: \code{var}, \code{lag} (parsed lag order or \code{"window"}),
+#'   \code{n_valid}, \code{n_invalid}, \code{n_first}, \code{n_total}, \code{pct_valid}, \code{pct_invalid}.
 #' @importFrom tibble tibble as_tibble
 #' @export
 ild_check_lags <- function(x, lag_vars = NULL, max_gap = NULL) {
   validate_ild(x)
   if (is.null(lag_vars)) {
     nms <- names(x)
-    lag_vars <- nms[grepl("_lag[0-9]+$", nms)]
+    lag_vars <- nms[grepl("_lag[0-9]+$|_lag_window$", nms)]
   }
   if (length(lag_vars) == 0) {
     return(tibble::tibble(
-      var = character(), n_valid = integer(), n_invalid = integer(),
-      n_first = integer(), n_total = integer(), pct_valid = double()
+      var = character(), lag = character(), n_valid = integer(), n_invalid = integer(),
+      n_first = integer(), n_total = integer(), pct_valid = double(), pct_invalid = double()
     ))
   }
   if (is.null(max_gap)) {
@@ -51,19 +50,26 @@ ild_check_lags <- function(x, lag_vars = NULL, max_gap = NULL) {
     n_invalid <- sum(is.na(x[[v]]) & could_have_lag, na.rm = TRUE)
     n_total <- sum(could_have_lag, na.rm = TRUE)
     pct_valid <- if (n_total > 0) 100 * n_valid / n_total else NA_real_
+    pct_invalid <- if (n_total > 0) 100 * n_invalid / n_total else NA_real_
+    lag_parsed <- if (grepl("_lag_window$", v)) "window" else {
+      z <- sub(".*_lag([0-9]+)$", "\\1", v)
+      if (z == v) NA_character_ else z
+    }
     out[[j]] <- list(
       var = v,
+      lag = lag_parsed,
       n_valid = as.integer(n_valid),
       n_invalid = as.integer(n_invalid),
       n_first = as.integer(n_first),
       n_total = as.integer(n_total),
-      pct_valid = pct_valid
+      pct_valid = pct_valid,
+      pct_invalid = pct_invalid
     )
   }
   if (j == 0) {
     return(tibble::tibble(
-      var = character(), n_valid = integer(), n_invalid = integer(),
-      n_first = integer(), n_total = integer(), pct_valid = double()
+      var = character(), lag = character(), n_valid = integer(), n_invalid = integer(),
+      n_first = integer(), n_total = integer(), pct_valid = double(), pct_invalid = double()
     ))
   }
   tibble::as_tibble(do.call(rbind, lapply(out[seq_len(j)], as.data.frame, stringsAsFactors = FALSE)))

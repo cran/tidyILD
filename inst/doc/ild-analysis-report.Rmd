@@ -1,0 +1,79 @@
+---
+title: "Short analysis report"
+author: "Alex Litovchenko"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Short analysis report}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 4
+)
+```
+
+This vignette shows a minimal analysis report: fit a model, print fixed effects, plot fitted vs observed, and show residual ACF and Q-Q.
+
+## 1. Fit model(s)
+
+```{r fit}
+library(tidyILD)
+d <- ild_simulate(n_id = 8, n_obs_per = 10, irregular = TRUE, seed = 101)
+x <- ild_prepare(d, id = "id", time = "time", gap_threshold = 7200)
+x <- ild_center(x, y)
+fit <- ild_lme(y ~ y_bp + y_wp + (1 | id), data = x, ar1 = FALSE, warn_no_ar1 = FALSE)
+```
+
+## 2. Tidy fixed-effects table
+
+```{r tidy}
+tidy_ild_model(fit)
+```
+
+## 3. Fitted vs observed
+
+```{r fitted_plot, fig.alt = "Fitted vs observed"}
+ild_plot(fit, type = "fitted")
+```
+
+## 4. Residual diagnostics: ACF and Q-Q
+
+```{r diag}
+diag <- ild_diagnostics(fit, type = c("residual_acf", "qq"))
+diag
+```
+
+```{r diag_plots, fig.alt = "Residual ACF and Q-Q", fig.show = "hold"}
+plots <- plot_ild_diagnostics(diag)
+plots$residual_acf
+plots$qq
+```
+
+## With AR1 (nlme)
+
+Same workflow with residual autocorrelation (nlme path). If the AR1 model fails to converge on this small example, we show the code only; in practice use more data or a different seed.
+
+```{r fit_ar1}
+fit_ar1 <- tryCatch(
+  ild_lme(y ~ y_bp + y_wp, data = x, random = ~ 1 | id, ar1 = TRUE),
+  error = function(e) NULL
+)
+if (!is.null(fit_ar1)) {
+  tidy_ild_model(fit_ar1)
+} else {
+  message("AR1 fit did not converge on this run; use ild_lme(..., ar1 = TRUE) with your data.")
+}
+```
+
+```{r diag_ar1, eval = !is.null(fit_ar1)}
+if (!is.null(fit_ar1)) {
+  diag_ar1 <- ild_diagnostics(fit_ar1, type = c("residual_acf", "qq"))
+  diag_ar1
+}
+```

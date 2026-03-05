@@ -1,20 +1,23 @@
 #' Summarize missingness pattern in ILD
 #'
-#' Returns a tabular summary of missingness by person and/or by variable.
-#' Complements [ild_summary()] and supports checking data before modeling.
+#' Returns a tabular summary of missingness by person and/or by variable,
+#' plus an optional heatmap plot. Complements [ild_summary()] and supports
+#' checking data before modeling. When \code{vars = NULL}, all non-internal
+#' data columns are used (observation presence across variables).
 #'
 #' @param x An ILD object (see [is_ild()]).
 #' @param vars Optional character vector of variable names to summarize.
-#'   If missing, all non-.ild_* columns (except id/time) are used.
-#' @return A list with:
-#'   - `by_id`: data frame with one row per person, columns id and for each
-#'     var the count (or proportion) of non-missing and missing.
-#'   - `overall`: named vector or list of overall missing counts/proportions
-#'     per variable.
-#'   - `n_complete`: number of rows with no missing in selected vars.
-#' @importFrom dplyr across all_of group_by summarise
+#'   If \code{NULL}, all non-.ild_* data columns are used.
+#' @param max_ids Optional integer. If set, subset to this many persons (sampled)
+#'   before computing \code{by_id}, \code{summary}, and \code{plot} to handle large N.
+#' @param seed Optional integer. Seed for sampling when \code{max_ids} is set.
+#' @return A list with: \code{summary} (tibble: one row per var, columns var, n_obs, n_na, pct_na),
+#'   \code{plot} (ggplot2 object for missingness heatmap), \code{by_id}, \code{overall},
+#'   \code{n_complete}, \code{vars}.
+#' @importFrom dplyr across all_of group_by summarise n_distinct
+#' @importFrom tibble tibble
 #' @export
-ild_missing_pattern <- function(x, vars = NULL) {
+ild_missing_pattern <- function(x, vars = NULL, max_ids = NULL, seed = NULL) {
   validate_ild(x)
   ild_cols <- c(".ild_id", ".ild_time", ".ild_time_num", ".ild_seq", ".ild_dt", ".ild_gap")
   all_nms <- names(x)
@@ -26,21 +29,56 @@ ild_missing_pattern <- function(x, vars = NULL) {
   } else {
     vars <- data_cols
   }
+  x_work <- x
+  if (!is.null(max_ids) && is.finite(max_ids) && max_ids > 0) {
+    if (!is.null(seed)) set.seed(seed)
+    ids <- unique(x[[".ild_id"]])
+    if (length(ids) > max_ids) {
+      ids_use <- sample(ids, size = min(max_ids, length(ids)))
+      x_work <- x[x[[".ild_id"]] %in% ids_use, ]
+    }
+  }
   id_col <- ".ild_id"
-  by_id <- dplyr::group_by(x, .data[[id_col]])
+  time_var <- ".ild_seq"
+  by_id <- dplyr::group_by(x_work, .data[[id_col]])
   by_id <- dplyr::summarise(by_id, dplyr::across(
     dplyr::all_of(vars),
     list(n_obs = ~ sum(!is.na(.x)), n_na = ~ sum(is.na(.x))),
     .names = "{.col}_{.fn}"
   ), .groups = "drop")
   overall <- list()
+  summary_rows <- list()
   for (v in vars) {
-    n_na <- sum(is.na(x[[v]]))
-    n_obs <- nrow(x)
+    n_na <- sum(is.na(x_work[[v]]))
+    n_obs <- nrow(x_work)
     overall[[v]] <- list(n_na = n_na, n_obs = n_obs, pct_na = 100 * n_na / n_obs)
+    summary_rows[[v]] <- tibble::tibble(var = v, n_obs = n_obs, n_na = n_na, pct_na = 100 * n_na / n_obs)
   }
-  n_complete <- sum(Reduce(`&`, lapply(vars, function(v) !is.na(x[[v]]))))
+  summary_tbl <- do.call(rbind, summary_rows)
+  if (length(summary_rows) > 0) summary_tbl <- tibble::as_tibble(summary_tbl)
+  n_complete <- sum(Reduce(`&`, lapply(vars, function(v) !is.na(x_work[[v]]))))
+  parts <- lapply(vars, function(v) {
+    data.frame(
+      id = x_work[[id_col]],
+      time = x_work[[time_var]],
+      variable = v,
+      missing = is.na(x_work[[v]]),
+      stringsAsFactors = FALSE
+    )
+  })
+  long <- do.call(rbind, parts)
+  p <- ggplot2::ggplot(long, ggplot2::aes(x = .data$time, y = factor(.data$id), fill = .data$missing)) +
+    ggplot2::geom_tile() +
+    ggplot2::scale_fill_manual(
+      values = c("FALSE" = "gray90", "TRUE" = "darkred"),
+      labels = c("observed", "missing")
+    ) +
+    ggplot2::labs(x = "Time (sequence)", y = "Person", fill = NULL, title = "Missingness") +
+    ggplot2::theme_minimal()
+  if (length(vars) > 1) p <- p + ggplot2::facet_wrap(ggplot2::vars(.data$variable), ncol = 1)
   list(
+    summary = summary_tbl,
+    plot = p,
     by_id = by_id,
     overall = overall,
     n_complete = n_complete,

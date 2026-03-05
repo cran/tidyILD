@@ -7,7 +7,9 @@ test_that("ild_summary returns expected structure", {
   # gap_threshold 50 so intervals (10, 10) are not gaps
   x <- ild_prepare(d, id = "id", time = "time", gap_threshold = 50)
   s <- ild_summary(x)
-  expect_named(s, c("n_units", "n_obs", "time_range", "spacing", "n_gaps", "pct_gap"))
+  expect_named(s, c("summary", "n_units", "n_obs", "time_range", "spacing", "n_gaps", "pct_gap"))
+  expect_s3_class(s$summary, "tbl_df")
+  expect_equal(names(s$summary), c("n_id", "n_obs", "time_min", "time_max", "prop_gap", "median_dt_sec", "iqr_dt_sec"))
   expect_equal(s$n_units, 2)
   expect_equal(s$n_obs, 4)
   expect_equal(s$time_range, c(0, 10))

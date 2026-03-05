@@ -11,15 +11,14 @@ ild_check_lags(x, lag_vars = NULL, max_gap = NULL)
 (e.g. from [ild_lag()] with \code{mode = "gap_aware"}).}
 
 \item{lag_vars}{Character vector of lag column names (e.g. \code{"y_lag1"}).
-If \code{NULL}, attempts to detect columns ending in \code{_lag{n}}.}
+If \code{NULL}, attempts to detect columns ending in \code{_lag{n}} or \code{_lag_window}.}
 
 \item{max_gap}{Numeric. Threshold used to define invalid (same units as
 \code{.ild_time_num}). If \code{NULL}, uses \code{ild_meta(x)$ild_gap_threshold}.}
 }
 \value{
-A data frame with one row per lag variable: \code{var}, \code{n_valid},
-  \code{n_invalid}, \code{n_first} (rows that are first per person, so no lag),
-  \code{n_total}, \code{pct_valid} (among rows that could have a lag, i.e. excluding first).
+A data frame with one row per lag variable: \code{var}, \code{lag} (parsed lag order or \code{"window"}),
+  \code{n_valid}, \code{n_invalid}, \code{n_first}, \code{n_total}, \code{pct_valid}, \code{pct_invalid}.
 }
 \description{
 Given an ILD object and lag variable names, reports how many lagged

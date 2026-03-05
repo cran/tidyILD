@@ -10,9 +10,10 @@ validate_ild(x)
 \item{x}{Object to validate (expected to be an ILD tibble).}
 }
 \value{
-Invisibly returns `x` if valid.
+Invisibly returns \code{x} if valid.
 }
 \description{
 Checks presence and types of `.ild_*` columns and `ild_*` attributes.
 Errors with a clear message if anything is missing or invalid.
+Calls \code{ild_normalize_internal()} so legacy objects get \code{attr(x, "tidyILD")} and class \code{tidyild_df}.
 }

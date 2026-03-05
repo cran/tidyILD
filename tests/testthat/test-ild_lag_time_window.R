@@ -27,3 +27,15 @@ test_that("ild_lag time_window requires window", {
   x <- ild_prepare(ild_simulate(n_id = 2, n_obs_per = 3, seed = 1), id = "id", time = "time")
   expect_error(ild_lag(x, y, mode = "time_window"), "window")
 })
+
+test_that("ild_lag time_window accepts lubridate duration", {
+  # time in seconds: 0, 3600, 7200. hours(2) = 7200 sec; at 7200, window (0, 7200) has obs at 0, 3600; closest_prior = 20
+  d <- data.frame(
+    id = 1,
+    time = as.POSIXct(c(0, 3600, 7200), origin = "1970-01-01"),
+    x = c(10, 20, 30)
+  )
+  x <- ild_prepare(d, id = "id", time = "time")
+  out <- ild_lag(x, x, mode = "time_window", window = lubridate::hours(2))
+  expect_equal(out$x_lag_window[3], 20)
+})

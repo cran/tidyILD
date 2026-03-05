@@ -11,6 +11,28 @@ test_that("ild_prepare creates all .ild_* columns", {
   expect_equal(x[[".ild_dt"]], c(NA, 10, NA, 10))
 })
 
+test_that("ild_prepare sets attr tidyILD and class tidyild_df", {
+  d <- data.frame(id = c(1, 1, 2, 2), time = as.POSIXct(c(0, 10, 0, 10), origin = "1970-01-01"), x = 1:4)
+  x <- ild_prepare(d, id = "id", time = "time", gap_threshold = 5)
+  expect_true(inherits(x, "tidyild_df"))
+  expect_true(inherits(x, "ild_tbl"))
+  tidyild <- attr(x, "tidyILD", exact = TRUE)
+  expect_false(is.null(tidyild))
+  expect_equal(tidyild$id_col, "id")
+  expect_equal(tidyild$time_col, "time")
+  expect_equal(tidyild$gap_threshold, 5)
+  expect_true(!is.null(tidyild$created))
+  expect_true(!is.null(tidyild$spacing))
+})
+
+test_that("ild_prepare .ild_seq is 1:n_i per id and .ild_dt equals diff of .ild_time_num", {
+  d <- data.frame(id = c(1, 1, 1, 2, 2), time = as.POSIXct(c(0, 5, 10, 0, 5), origin = "1970-01-01"), x = 1:5)
+  x <- ild_prepare(d, id = "id", time = "time")
+  expect_equal(x[[".ild_seq"]], c(1, 2, 3, 1, 2))
+  dt_expected <- c(NA, 5, 5, NA, 5)
+  expect_equal(x[[".ild_dt"]], dt_expected)
+})
+
 test_that("ild_prepare sorts by id then time", {
   d <- data.frame(
     id = c(2, 1, 1, 2),

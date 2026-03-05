@@ -35,7 +35,7 @@ test_that("ild_meta returns list with expected names", {
   expect_equal(meta$ild_n_obs, 4)
 })
 
-test_that("as_ild validates and adds ild_tbl class", {
+test_that("as_ild validates and adds tidyild_df and ild_tbl class", {
   d <- data.frame(
     id = c(1, 1, 2, 2),
     time = as.POSIXct(c(0, 1, 0, 1), origin = "1970-01-01"),
@@ -43,5 +43,6 @@ test_that("as_ild validates and adds ild_tbl class", {
   )
   x <- ild_prepare(d, id = "id", time = "time")
   y <- as_ild(x)
+  expect_s3_class(y, "tidyild_df")
   expect_s3_class(y, "ild_tbl")
 })

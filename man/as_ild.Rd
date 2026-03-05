@@ -10,10 +10,10 @@ as_ild(x)
 \item{x}{A data frame or tibble that may already be ILD-shaped.}
 }
 \value{
-An ILD tibble (invisibly validated).
+An ILD tibble with class \code{tidyild_df} and \code{ild_tbl}.
 }
 \description{
 If the object already has the required `.ild_*` columns and
-attributes, validates and returns it (with ild_tbl class if missing).
+attributes, validates and returns it (with \code{tidyild_df} and \code{ild_tbl} class if missing).
 Otherwise errors.
 }

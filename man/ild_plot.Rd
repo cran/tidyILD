@@ -6,7 +6,8 @@
 \usage{
 ild_plot(
   x,
-  type = c("trajectory", "heatmap", "gaps", "missingness", "fitted", "residual_acf"),
+  type = c("trajectory", "heatmap", "gaps", "missingness", "fitted", "fitted_vs_actual",
+    "residual_acf"),
   var = NULL,
   id_var = ".ild_id",
   time_var = c(".ild_time_num", ".ild_seq"),
@@ -18,9 +19,10 @@ ild_plot(
 \arguments{
 \item{x}{An ILD tibble or a fitted [ild_lme()] model.}
 
-\item{type}{Character. One of `"trajectory"`, `"heatmap"`, `"gaps"`,
-`"missingness"` (person x time missingness), `"fitted"` (requires fitted model),
-`"residual_acf"` (requires fitted model).}
+\item{type}{Character (or vector). One or more of: `"trajectory"`, `"heatmap"`,
+`"gaps"`, `"missingness"`, `"fitted"` or `"fitted_vs_actual"` (requires fitted model),
+`"residual_acf"` (requires fitted model; ACF is over observation sequence, not adjusted for
+irregular time gaps). If length > 1, returns a named list of ggplots.}
 
 \item{var}{For `trajectory` or `heatmap`, the variable to plot (optional;
 if missing and only one non-.ild_* column exists, it is used).}
@@ -37,9 +39,16 @@ larger; default 20). Set to `Inf` to plot all.}
 \item{...}{Unused.}
 }
 \value{
-A ggplot object, or a list of plots for diagnostics.
+A single ggplot when `length(type) == 1`, or a named list of ggplots when `length(type) > 1`.
 }
 \description{
 Produces trajectory (spaghetti), heatmap, gaps, and (if a fitted model
-is provided) fitted vs observed and residual ACF.
+is provided) fitted vs actual and residual ACF. Works for both lmerMod and
+lme (ild_lme with ar1 = TRUE).
+}
+\examples{
+x <- ild_prepare(ild_simulate(n_id = 3, n_obs_per = 6, seed = 1), id = "id", time = "time")
+fit <- ild_lme(y ~ 1 + (1 | id), data = x, ar1 = FALSE, warn_no_ar1 = FALSE)
+ild_plot(fit, type = "fitted_vs_actual")
+ild_plot(fit, type = c("fitted_vs_actual", "residual_acf"))
 }

@@ -4,23 +4,27 @@
 \alias{ild_missing_pattern}
 \title{Summarize missingness pattern in ILD}
 \usage{
-ild_missing_pattern(x, vars = NULL)
+ild_missing_pattern(x, vars = NULL, max_ids = NULL, seed = NULL)
 }
 \arguments{
 \item{x}{An ILD object (see [is_ild()]).}
 
 \item{vars}{Optional character vector of variable names to summarize.
-If missing, all non-.ild_* columns (except id/time) are used.}
+If \code{NULL}, all non-.ild_* data columns are used.}
+
+\item{max_ids}{Optional integer. If set, subset to this many persons (sampled)
+before computing \code{by_id}, \code{summary}, and \code{plot} to handle large N.}
+
+\item{seed}{Optional integer. Seed for sampling when \code{max_ids} is set.}
 }
 \value{
-A list with:
-  - `by_id`: data frame with one row per person, columns id and for each
-    var the count (or proportion) of non-missing and missing.
-  - `overall`: named vector or list of overall missing counts/proportions
-    per variable.
-  - `n_complete`: number of rows with no missing in selected vars.
+A list with: \code{summary} (tibble: one row per var, columns var, n_obs, n_na, pct_na),
+  \code{plot} (ggplot2 object for missingness heatmap), \code{by_id}, \code{overall},
+  \code{n_complete}, \code{vars}.
 }
 \description{
-Returns a tabular summary of missingness by person and/or by variable.
-Complements [ild_summary()] and supports checking data before modeling.
+Returns a tabular summary of missingness by person and/or by variable,
+plus an optional heatmap plot. Complements [ild_summary()] and supports
+checking data before modeling. When \code{vars = NULL}, all non-internal
+data columns are used (observation presence across variables).
 }

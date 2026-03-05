@@ -1,12 +1,14 @@
 #' ILD-specific plots
 #'
 #' Produces trajectory (spaghetti), heatmap, gaps, and (if a fitted model
-#' is provided) fitted vs observed and residual ACF.
+#' is provided) fitted vs actual and residual ACF. Works for both lmerMod and
+#' lme (ild_lme with ar1 = TRUE).
 #'
 #' @param x An ILD tibble or a fitted [ild_lme()] model.
-#' @param type Character. One of `"trajectory"`, `"heatmap"`, `"gaps"`,
-#'   `"missingness"` (person x time missingness), `"fitted"` (requires fitted model),
-#'   `"residual_acf"` (requires fitted model).
+#' @param type Character (or vector). One or more of: `"trajectory"`, `"heatmap"`,
+#'   `"gaps"`, `"missingness"`, `"fitted"` or `"fitted_vs_actual"` (requires fitted model),
+#'   `"residual_acf"` (requires fitted model; ACF is over observation sequence, not adjusted for
+#'   irregular time gaps). If length > 1, returns a named list of ggplots.
 #' @param var For `trajectory` or `heatmap`, the variable to plot (optional;
 #'   if missing and only one non-.ild_* column exists, it is used).
 #' @param id_var For trajectory, variable used for grouping (default `.ild_id`).
@@ -15,43 +17,72 @@
 #'   larger; default 20). Set to `Inf` to plot all.
 #' @param seed Integer. Seed for sampling ids when `max_ids` is set (default 42).
 #' @param ... Unused.
-#' @return A ggplot object, or a list of plots for diagnostics.
+#' @return A single ggplot when `length(type) == 1`, or a named list of ggplots when `length(type) > 1`.
+#' @examples
+#' x <- ild_prepare(ild_simulate(n_id = 3, n_obs_per = 6, seed = 1), id = "id", time = "time")
+#' fit <- ild_lme(y ~ 1 + (1 | id), data = x, ar1 = FALSE, warn_no_ar1 = FALSE)
+#' ild_plot(fit, type = "fitted_vs_actual")
+#' ild_plot(fit, type = c("fitted_vs_actual", "residual_acf"))
 #' @importFrom ggplot2 aes geom_line geom_point geom_tile geom_abline labs theme_minimal ggplot
 #' @export
 ild_plot <- function(x,
-                     type = c("trajectory", "heatmap", "gaps", "missingness", "fitted", "residual_acf"),
+                     type = c("trajectory", "heatmap", "gaps", "missingness", "fitted", "fitted_vs_actual", "residual_acf"),
                      var = NULL,
                      id_var = ".ild_id",
                      time_var = c(".ild_time_num", ".ild_seq"),
                      max_ids = 20L,
                      seed = 42L,
                      ...) {
-  type <- match.arg(type)
+  type <- match.arg(type, several.ok = TRUE)
   time_var <- match.arg(time_var)
-  data <- if (inherits(x, "ild_lme") || !is.null(attr(x, "ild_data", exact = TRUE))) attr(x, "ild_data", exact = TRUE) else x
-  if (is.null(data) && type %in% c("fitted", "residual_acf")) {
-    stop("Fitted model is missing ild_data attribute.", call. = FALSE)
+  fit_types <- c("fitted", "fitted_vs_actual", "residual_acf")
+  if (any(type %in% fit_types)) {
+    data <- if (inherits(x, "ild_lme") || !is.null(attr(x, "ild_data", exact = TRUE))) attr(x, "ild_data", exact = TRUE) else NULL
+    if (is.null(data)) stop("Fitted model is missing ild_data attribute.", call. = FALSE)
+  } else {
+    data <- if (inherits(x, "ild_lme") || !is.null(attr(x, "ild_data", exact = TRUE))) attr(x, "ild_data", exact = TRUE) else x
   }
   if (!is.null(data)) validate_ild(data)
   ild_cols <- c(".ild_id", ".ild_time", ".ild_time_num", ".ild_seq", ".ild_dt", ".ild_gap")
   data_cols <- setdiff(names(data), ild_cols)
-  if (type %in% c("trajectory", "heatmap") && is.null(var)) {
+  if (any(type %in% c("trajectory", "heatmap")) && is.null(var)) {
     if (length(data_cols) == 0) stop("No data columns to plot.", call. = FALSE)
     if (length(data_cols) > 1) stop("Specify 'var' when data has multiple non-.ild_* columns.", call. = FALSE)
     var <- data_cols[1]
   }
-  if (type == "missingness") {
-    miss_vars <- if (is.null(var)) data_cols else var
-    if (length(miss_vars) == 0) stop("No data columns for missingness plot.", call. = FALSE)
-    return(ild_plot_missingness(data, miss_vars, id_var, time_var))
+  one_plot <- function(t) {
+    if (t == "fitted_vs_actual") t <- "fitted"
+    if (t == "missingness") {
+      miss_vars <- if (is.null(var)) data_cols else var
+      if (length(miss_vars) == 0) stop("No data columns for missingness plot.", call. = FALSE)
+      return(ild_plot_missingness(data, miss_vars, id_var, time_var))
+    }
+    switch(t,
+      trajectory = ild_plot_trajectory(data, var, id_var, time_var, max_ids, seed),
+      heatmap = ild_plot_heatmap(data, var, id_var, time_var),
+      gaps = ild_plot_gaps(data, id_var, time_var),
+      fitted = ild_plot_fitted(x, data),
+      residual_acf = ild_plot_residual_acf(x, data)
+    )
   }
-  switch(type,
-    trajectory = ild_plot_trajectory(data, var, id_var, time_var, max_ids, seed),
-    heatmap = ild_plot_heatmap(data, var, id_var, time_var),
-    gaps = ild_plot_gaps(data, id_var, time_var),
-    fitted = ild_plot_fitted(x, data),
-    residual_acf = ild_plot_residual_acf(x, data)
-  )
+  if (length(type) == 1) {
+    if (type == "missingness") {
+      miss_vars <- if (is.null(var)) data_cols else var
+      if (length(miss_vars) == 0) stop("No data columns for missingness plot.", call. = FALSE)
+      return(ild_plot_missingness(data, miss_vars, id_var, time_var))
+    }
+    plot_type <- if (type == "fitted_vs_actual") "fitted" else type
+    return(switch(plot_type,
+      trajectory = ild_plot_trajectory(data, var, id_var, time_var, max_ids, seed),
+      heatmap = ild_plot_heatmap(data, var, id_var, time_var),
+      gaps = ild_plot_gaps(data, id_var, time_var),
+      fitted = ild_plot_fitted(x, data),
+      residual_acf = ild_plot_residual_acf(x, data)
+    ))
+  }
+  out <- lapply(type, one_plot)
+  names(out) <- type
+  out
 }
 
 ild_plot_trajectory <- function(data, var, id_var, time_var, max_ids, seed) {
@@ -105,13 +136,10 @@ ild_plot_missingness <- function(data, vars, id_var, time_var) {
 }
 
 ild_plot_fitted <- function(fit, data) {
-  f <- stats::fitted(fit)
-  mf <- tryCatch(stats::model.frame(fit, data = data), error = function(e) stats::model.frame(fit))
-  y <- stats::model.response(mf)
-  id_col <- ".ild_id"
-  id_vals <- if (id_col %in% names(data)) data[[id_col]] else seq_along(f)
-  df <- data.frame(fitted = f, observed = y, id = id_vals)
-  ggplot2::ggplot(df, ggplot2::aes(x = .data$observed, y = .data$fitted, color = .data$id)) +
+  aug <- augment_ild_model(fit)
+  resp_name <- setdiff(names(aug), c(".ild_id", ".ild_time", ".fitted", ".resid"))[1L]
+  if (is.na(resp_name)) resp_name <- "outcome"
+  ggplot2::ggplot(aug, ggplot2::aes(x = .data[[resp_name]], y = .data$.fitted, color = .data$.ild_id)) +
     ggplot2::geom_point(alpha = 0.7) +
     ggplot2::geom_abline(slope = 1, intercept = 0, linetype = 2) +
     ggplot2::labs(x = "Observed", y = "Fitted", title = "Fitted vs Observed") +
@@ -119,17 +147,38 @@ ild_plot_fitted <- function(fit, data) {
 }
 
 ild_plot_residual_acf <- function(fit, data) {
-  diag <- ild_diagnostics(fit, data = data, by_id = FALSE)
-  acf_obj <- diag$acf
-  if (is.null(acf_obj)) {
+  diag <- ild_diagnostics(fit, data = data, by_id = FALSE, type = "residual_acf")
+  acf_pooled <- diag$stats$acf$pooled
+  if (is.null(acf_pooled) || nrow(acf_pooled) == 0) {
     return(ggplot2::ggplot() + ggplot2::theme_minimal() + ggplot2::labs(title = "ACF (insufficient data)"))
   }
-  lag <- acf_obj$lag
-  acf_vals <- as.vector(acf_obj$acf)
-  df <- data.frame(lag = lag, acf = acf_vals)
-  ggplot2::ggplot(df, ggplot2::aes(x = .data$lag, y = .data$acf)) +
+  ggplot2::ggplot(acf_pooled, ggplot2::aes(x = .data$lag, y = .data$acf)) +
     ggplot2::geom_col(width = 0.1) +
     ggplot2::geom_hline(yintercept = 0) +
     ggplot2::labs(x = "Lag", y = "ACF", title = "Residual ACF") +
     ggplot2::theme_minimal()
+}
+
+#' ILD heatmap (alias for ild_plot with type = "heatmap")
+#'
+#' Person x time heatmap of a variable. See [ild_plot()].
+#' @param x ILD object or fitted model (for heatmap, data are taken from ild_data if model).
+#' @param var Variable to plot. If NULL, single data column is used.
+#' @param ... Passed to [ild_plot()] (e.g. id_var, time_var).
+#' @return A ggplot object.
+#' @export
+ild_heatmap <- function(x, var = NULL, ...) {
+  ild_plot(x, type = "heatmap", var = var, ...)
+}
+
+#' ILD spaghetti / person trajectories (alias for ild_plot with type = "trajectory")
+#'
+#' Line plot of variable over time, one line per person. See [ild_plot()].
+#' @param x ILD object or fitted model.
+#' @param var Variable to plot. If NULL, single data column is used.
+#' @param ... Passed to [ild_plot()] (e.g. max_ids, seed, id_var, time_var).
+#' @return A ggplot object.
+#' @export
+ild_spaghetti <- function(x, var = NULL, ...) {
+  ild_plot(x, type = "trajectory", var = var, ...)
 }

@@ -29,7 +29,13 @@ fit1 <- ild_lme(y ~ 1, data = x, ar1 = TRUE, correlation_class = "CAR1")
 
 ## ----diagnostics--------------------------------------------------------------
 diag <- ild_diagnostics(fit1, data = x)
-names(diag$plot)
+names(diag)  # meta, data, stats
+names(plot_ild_diagnostics(diag))  # plot names for requested types
+# Pooled residual ACF (tibble)
+head(diag$stats$acf$pooled)
+# By-id ACF when by_id = TRUE: one tibble per person
+names(diag$stats$acf$by_id)
+head(diag$stats$acf$by_id[[1]])
 
 ## ----plot_trajectory, fig.alt = "Trajectory plot"-----------------------------
 ild_plot(x, type = "trajectory", var = "y", max_ids = 5)

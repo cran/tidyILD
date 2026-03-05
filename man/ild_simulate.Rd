@@ -2,28 +2,47 @@
 % Please edit documentation in R/ild_simulate.R
 \name{ild_simulate}
 \alias{ild_simulate}
-\title{Simulate simple ILD for examples and tests}
+\title{Simulate simple ILD for examples, tests, and power analysis}
 \usage{
-ild_simulate(n_id = 5L, n_obs_per = 10L, irregular = FALSE, seed = 42L)
+ild_simulate(
+  n_id = 5L,
+  n_obs_per = 10L,
+  n_time = NULL,
+  irregular = FALSE,
+  ar1 = NULL,
+  wp_effect = 0.5,
+  bp_effect = 1,
+  seed = 42L
+)
 }
 \arguments{
 \item{n_id}{Integer. Number of persons (default 5).}
 
 \item{n_obs_per}{Integer. Observations per person (default 10).}
 
-\item{irregular}{Logical. If `TRUE`, add random jitter to time (default `FALSE`).}
+\item{n_time}{Integer. Alias for \code{n_obs_per} (observations per person). If provided, overrides \code{n_obs_per}.}
+
+\item{irregular}{Logical. If \code{TRUE}, add random jitter to time (default \code{FALSE}).}
+
+\item{ar1}{Numeric or \code{NULL}. If numeric, within-person AR(1) correlation (e.g. 0.4). If \code{NULL} or 0, no AR (default \code{NULL}).}
+
+\item{wp_effect}{Numeric. Scale (SD) of within-person innovation (default 0.5).}
+
+\item{bp_effect}{Numeric. Scale (SD) of between-person random intercept (default 1).}
 
 \item{seed}{Integer. Random seed for reproducibility (default 42).}
 }
 \value{
-A data frame with columns `id`, `time` (POSIXct or numeric), and `y`.
+A data frame with columns \code{id}, \code{time} (POSIXct), and \code{y}.
 }
 \description{
-Generates a small tibble with id, time, and one or more variables,
-optionally with irregular spacing. Use [ild_prepare()] after to get
-a proper ILD object.
+Generates a tibble with id, time, and outcome \code{y}. Optionally uses
+AR(1) within-person correlation and configurable WP/BP variance. Use
+[ild_prepare()] after to get a proper ILD object.
 }
 \examples{
 d <- ild_simulate(n_id = 3, n_obs_per = 5, seed = 1)
 x <- ild_prepare(d, id = "id", time = "time")
+d2 <- ild_simulate(n_id = 100, n_time = 50, ar1 = 0.4, wp_effect = 0.6,
+  bp_effect = 0.3, irregular = TRUE, seed = 1)
 }
