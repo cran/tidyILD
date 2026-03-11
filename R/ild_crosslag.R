@@ -57,6 +57,19 @@ ild_crosslag <- function(data,
     lag_check = lag_check,
     data = data_lagged
   )
+  attr(out, "ild_provenance") <- ild_new_analysis_provenance(
+    data_lagged,
+    "ild_crosslag",
+    list(
+      outcome = outcome,
+      predictor = predictor,
+      lag = lag,
+      mode = mode,
+      max_gap = max_gap,
+      ar1 = ar1
+    ),
+    list(lag_var = lag_var_name, n_obs = nrow(data_lagged))
+  )
   if (include_diagnostics) {
     diag_out <- tryCatch(
       ild_diagnostics(fit, type = c("residual_acf", "qq")),

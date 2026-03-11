@@ -61,48 +61,82 @@ ild_response_name <- function(fit) {
 #' @param conf_level Numeric. Confidence level for intervals (default 0.95).
 #' @param object Logical. If \code{TRUE}, return a list with \code{meta} and \code{table}
 #'   and class \code{tidyild_model} for polished printing (default \code{FALSE}).
-#' @param ... Unused.
+#' @param se Character. \code{"model"} (default) uses the model's standard errors;
+#'   \code{"robust"} uses cluster-robust SEs from [ild_robust_se()] (requires
+#'   \pkg{clubSandwich}).
+#' @param robust_type Character. When \code{se = "robust"}, the correction type:
+#'   \code{"CR2"} (recommended), \code{"CR3"}, or \code{"CR0"}.
+#' @param ... Passed to [ild_robust_se()] when \code{se = "robust"} (e.g. \code{cluster}, \code{cluster_vec}).
 #' @return A tibble, or when \code{object = TRUE} a list of class \code{tidyild_model}.
+#'
+#' @section Model-based vs robust SE:
+#' With \code{se = "model"} (default), standard errors and CIs come from the fitted
+#' model. With \code{se = "robust"}, cluster-robust (sandwich) SEs are used;
+#' CIs and p-values are based on a Wald normal approximation. Install the
+#' \pkg{clubSandwich} package to use robust SEs.
+#'
 #' @export
-tidy_ild_model <- function(fit, conf_level = 0.95, object = FALSE, ...) {
+tidy_ild_model <- function(fit, conf_level = 0.95, object = FALSE,
+                          se = c("model", "robust"), robust_type = c("CR2", "CR3", "CR0"), ...) {
+  se <- match.arg(se)
+  robust_type <- match.arg(robust_type)
   q <- (1 - conf_level) / 2
   engine <- if (inherits(fit, "lme")) "lme" else "lmer"
   ar1 <- isTRUE(attr(fit, "ild_ar1", exact = TRUE))
   if (inherits(fit, "lme")) {
     tt <- summary(fit)$tTable
     if (is.null(tt)) stop("Could not extract fixed-effect table from lme fit.", call. = FALSE)
-    tbl <- tibble::tibble(
-      term = rownames(tt),
-      estimate = as.vector(tt[, "Value"]),
-      std_error = as.vector(tt[, "Std.Error"]),
-      ci_low = as.vector(tt[, "Value"]) + stats::qt(q, tt[, "DF"]) * as.vector(tt[, "Std.Error"]),
-      ci_high = as.vector(tt[, "Value"]) + stats::qt(1 - q, tt[, "DF"]) * as.vector(tt[, "Std.Error"]),
-      p_value = as.vector(tt[, "p-value"])
-    )
+    est <- as.vector(tt[, "Value"])
+    se_vec <- as.vector(tt[, "Std.Error"])
+    pval <- as.vector(tt[, "p-value"])
+    terms <- rownames(tt)
+    df_use <- tt[, "DF"]
   } else if (inherits(fit, "lmerMod")) {
     cc <- summary(fit)$coefficients
     if (is.null(cc)) stop("Could not extract coefficient table from lmer fit.", call. = FALSE)
     est <- as.vector(cc[, "Estimate"])
-    se <- as.vector(cc[, "Std. Error"])
+    se_vec <- as.vector(cc[, "Std. Error"])
     pval <- if ("Pr(>|t|)" %in% colnames(cc)) {
       as.vector(cc[, "Pr(>|t|)"])
     } else {
       rep(NA_real_, length(est))
     }
-    tbl <- tibble::tibble(
-      term = rownames(cc),
-      estimate = est,
-      std_error = se,
-      ci_low = est + stats::qnorm(q) * se,
-      ci_high = est + stats::qnorm(1 - q) * se,
-      p_value = pval
-    )
+    terms <- rownames(cc)
+    df_use <- NULL
   } else {
     stop("tidy_ild_model() supports only fits from ild_lme() (lme or lmerMod).", call. = FALSE)
   }
+  if (se == "robust") {
+    rlang::check_installed("clubSandwich", reason = "to use robust standard errors (se = \"robust\")")
+    rob <- ild_robust_se(fit, type = robust_type, ...)
+    vc <- rob$vcov
+    if (nrow(vc) != length(est) || ncol(vc) != length(est)) {
+      stop("Robust vcov dimension does not match fixed-effect length.", call. = FALSE)
+    }
+    se_vec <- sqrt(diag(vc))
+    pval <- 2 * (1 - stats::pnorm(abs(est / se_vec)))
+  }
+  ci_low <- if (se == "robust" || inherits(fit, "lmerMod")) {
+    est + stats::qnorm(q) * se_vec
+  } else {
+    est + stats::qt(q, df_use) * se_vec
+  }
+  ci_high <- if (se == "robust" || inherits(fit, "lmerMod")) {
+    est + stats::qnorm(1 - q) * se_vec
+  } else {
+    est + stats::qt(1 - q, df_use) * se_vec
+  }
+  tbl <- tibble::tibble(
+    term = terms,
+    estimate = est,
+    std_error = se_vec,
+    ci_low = ci_low,
+    ci_high = ci_high,
+    p_value = pval
+  )
   if (!object) return(tbl)
   out <- list(
-    meta = list(engine = engine, ar1 = ar1),
+    meta = list(engine = engine, ar1 = ar1, se = se),
     table = tbl
   )
   class(out) <- "tidyild_model"
@@ -111,7 +145,8 @@ tidy_ild_model <- function(fit, conf_level = 0.95, object = FALSE, ...) {
 
 #' @export
 print.tidyild_model <- function(x, ...) {
-  cat("Fixed effects (", x$meta$engine, if (x$meta$ar1) ", AR1/CAR1" else "", ")\n", sep = "")
+  se_info <- if (identical(x$meta$se, "robust")) " robust SE" else ""
+  cat("Fixed effects (", x$meta$engine, if (x$meta$ar1) ", AR1/CAR1" else "", se_info, ")\n", sep = "")
   print(x$table)
   invisible(x)
 }

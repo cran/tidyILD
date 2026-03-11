@@ -57,13 +57,15 @@ ild_normalize_internal <- function(x) {
   ild_gap_threshold <- attr(x, "ild_gap_threshold", exact = TRUE)
   ild_spacing <- attr(x, "ild_spacing", exact = TRUE)
   if (is.null(ild_id) || is.null(ild_time) || is.null(ild_gap_threshold)) return(x)
+  pv <- tryCatch(as.character(utils::packageVersion("tidyILD")), error = function(e) "0.0.0")
   attr(x, .TIDYILD_ATTR) <- list(
     id_col = ild_id,
     time_col = ild_time,
     tz = "UTC",
     gap_threshold = ild_gap_threshold,
     created = NA,
-    spacing = ild_spacing
+    spacing = ild_spacing,
+    provenance = list(version = pv, schema_version = "1", object_type = "ild_data", steps = list())
   )
   if (!inherits(x, "tidyild_df")) {
     class(x) <- c("tidyild_df", "ild_tbl", setdiff(class(x), c("tidyild_df", "ild_tbl")))
@@ -176,13 +178,15 @@ new_ild_df <- function(data, ild_id, ild_time, gap_threshold, spacing, tz = "UTC
   attr(x, "ild_n_units")       <- n_units
   attr(x, "ild_n_obs")         <- n_obs
   attr(x, "ild_spacing")       <- spacing
+  pv <- tryCatch(as.character(utils::packageVersion("tidyILD")), error = function(e) "0.0.0")
   attr(x, .TIDYILD_ATTR)       <- list(
     id_col = ild_id,
     time_col = ild_time,
     tz = tz,
     gap_threshold = gap_threshold,
     created = Sys.time(),
-    spacing = spacing
+    spacing = spacing,
+    provenance = list(version = pv, schema_version = "1", object_type = "ild_data", steps = list())
   )
   class(x) <- c("tidyild_df", "ild_tbl", class(x))
   x

@@ -124,6 +124,11 @@ ild_diagnostics <- function(object, data = NULL, type = c("residual_acf", "resid
     stats = stats
   )
   class(out) <- "ild_diagnostics"
+  attr(out, "ild_provenance") <- ild_new_analysis_provenance(object, "ild_diagnostics", list(
+    type = type,
+    by_id = by_id,
+    engine = meta$engine
+  ), list(n_obs = n_obs, n_residuals = nrow(data_resid)))
   out
 }
 

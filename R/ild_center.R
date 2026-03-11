@@ -31,6 +31,7 @@ ild_center <- function(x, ..., type = c("person_mean", "grand_mean"),
     }
   }
   out <- x
+  created_nms <- character(0)
   for (v in vars) {
     out <- dplyr::group_by(out, .data[[id_col]])
     if (naming == "suffix") {
@@ -45,11 +46,18 @@ ild_center <- function(x, ..., type = c("person_mean", "grand_mean"),
       !!wp_nm := .data[[v]] - mean(.data[[v]], na.rm = TRUE)
     )
     out <- dplyr::ungroup(out)
+    created_nms <- c(created_nms, bp_nm, wp_nm)
     if (type == "grand_mean") {
       gm <- mean(out[[v]], na.rm = TRUE)
       out[[paste0(v, "_gm")]] <- gm
       out[[paste0(v, "_wp_gm")]] <- out[[v]] - gm
+      created_nms <- c(created_nms, paste0(v, "_gm"), paste0(v, "_wp_gm"))
     }
   }
-  restore_ild_attrs(x, out)
+  out <- restore_ild_attrs(x, out)
+  out <- ild_add_step(out, "ild_center",
+    list(vars = vars, type = type, naming = naming),
+    list(created = created_nms)
+  )
+  out
 }

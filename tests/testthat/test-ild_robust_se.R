@@ -1,0 +1,52 @@
+test_that("ild_robust_se requires ild_data", {
+  dat <- ild_simulate(n_id = 4, n_obs_per = 5, seed = 1)
+  dat <- ild_prepare(dat, id = "id", time = "time")
+  dat <- ild_center(dat, y)
+  fit <- ild_lme(y ~ y_bp + y_wp + (1 | id), data = dat, ar1 = FALSE, warn_no_ar1 = FALSE)
+  attr(fit, "ild_data") <- NULL
+  expect_error(ild_robust_se(fit), "refit using ild_lme")
+})
+
+test_that("ild_robust_se returns list with vcov, type, cluster_name, engine", {
+  skip_if_not_installed("clubSandwich")
+  set.seed(1)
+  dat <- ild_simulate(n_id = 8, n_obs_per = 6, seed = 1)
+  dat <- ild_prepare(dat, id = "id", time = "time")
+  dat <- ild_center(dat, y)
+  fit <- ild_lme(y ~ y_bp + y_wp + (1 | id), data = dat, ar1 = FALSE, warn_no_ar1 = FALSE)
+  rv <- ild_robust_se(fit, type = "CR2")
+  expect_type(rv, "list")
+  expect_named(rv, c("vcov", "type", "cluster_name", "engine"))
+  expect_equal(rv$type, "CR2")
+  expect_equal(rv$engine, "lmer")
+  expect_true(is.matrix(rv$vcov))
+  expect_equal(nrow(rv$vcov), 3L)  # (Intercept), y_bp, y_wp
+  expect_equal(ncol(rv$vcov), 3L)
+})
+
+test_that("tidy_ild_model with se = robust returns numeric SEs and CIs", {
+  skip_if_not_installed("clubSandwich")
+  set.seed(1)
+  dat <- ild_simulate(n_id = 8, n_obs_per = 6, seed = 1)
+  dat <- ild_prepare(dat, id = "id", time = "time")
+  dat <- ild_center(dat, y)
+  fit <- ild_lme(y ~ y_bp + y_wp + (1 | id), data = dat, ar1 = FALSE, warn_no_ar1 = FALSE)
+  tbl <- tidy_ild_model(fit, se = "robust", robust_type = "CR2")
+  expect_s3_class(tbl, "tbl_df")
+  expect_named(tbl, c("term", "estimate", "std_error", "ci_low", "ci_high", "p_value"))
+  expect_true(all(is.finite(tbl$std_error)))
+  expect_true(all(is.finite(tbl$ci_low)))
+  expect_true(all(is.finite(tbl$ci_high)))
+  expect_true(all(is.finite(tbl$p_value)))
+})
+
+test_that("tidy_ild_model se = model unchanged when se = model", {
+  set.seed(1)
+  dat <- ild_simulate(n_id = 6, n_obs_per = 5, seed = 1)
+  dat <- ild_prepare(dat, id = "id", time = "time")
+  dat <- ild_center(dat, y)
+  fit <- ild_lme(y ~ y_bp + y_wp + (1 | id), data = dat, ar1 = FALSE, warn_no_ar1 = FALSE)
+  t_model <- tidy_ild_model(fit, se = "model")
+  t_default <- tidy_ild_model(fit)
+  expect_equal(t_model, t_default)
+})

@@ -1,0 +1,127 @@
+---
+title: "Reproducible ILD workflows with tidyILD provenance"
+author: "Alex Litovchenko"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Reproducible ILD workflows with tidyILD provenance}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 4
+)
+```
+
+tidyILD records **provenance** at each step: data preparation, centering, lags, alignment, weighting, and model fitting. This vignette shows how to inspect history, generate methods text, build a report, export provenance, and compare two pipelines.
+
+## 1. Prepare data
+
+```{r prepare}
+library(tidyILD)
+set.seed(1)
+d <- ild_simulate(n_id = 8, n_obs_per = 10, irregular = TRUE, seed = 42)
+x <- ild_prepare(d, id = "id", time = "time", gap_threshold = 7200)
+```
+
+## 2. Center and lag
+
+```{r center_lag}
+x <- ild_center(x, y)
+x <- ild_lag(x, y, n = 1, mode = "gap_aware", max_gap = 7200)
+```
+
+## 3. Fit model
+
+```{r fit}
+fit <- ild_lme(y ~ y_bp + y_wp + (1 | id), data = x, ar1 = FALSE, warn_no_ar1 = FALSE)
+```
+
+## 4. Run diagnostics
+
+```{r diag}
+diag <- ild_diagnostics(fit, type = c("residual_acf", "qq"))
+```
+
+## 5. Inspect ild_history()
+
+`ild_history()` prints a human-readable log of all preprocessing and analysis steps recorded on the object.
+
+```{r history}
+ild_history(x)
+```
+
+For a model fit, provenance includes the source data steps plus the analysis step:
+
+```{r history_fit}
+ild_history(fit)
+```
+
+## 6. Generate ild_methods()
+
+`ild_methods()` turns provenance into a single methods-style paragraph suitable for a manuscript.
+
+```{r methods}
+ild_methods(fit)
+```
+
+If you reported fixed effects with cluster-robust SEs (e.g. via `tidy_ild_model(fit, se = "robust", robust_type = "CR2")`), pass that so the methods text can mention it:
+
+```{r methods_robust, eval = requireNamespace("clubSandwich", quietly = TRUE)}
+ild_methods(fit, robust_se = "CR2")
+```
+
+## 7. Run ild_report()
+
+`ild_report()` assembles a standardized list: meta (n_obs, n_id, engine), methods text, the fixed-effects table, a diagnostics summary, provenance, and an optional export path.
+
+```{r report}
+r <- ild_report(fit)
+names(r)
+r$meta
+r$methods
+r$model_table
+```
+
+The return schema is stable: `meta`, `methods`, `model_table`, `diagnostics_summary`, `provenance`, `provenance_export_path`.
+
+## 8. Export provenance
+
+Export the full provenance (data + analysis steps) to JSON or YAML for reproducibility supplements or archiving.
+
+```{r export}
+tmp <- tempfile(fileext = ".json")
+ild_export_provenance(fit, tmp, format = "json")
+readLines(tmp, n = 20)
+```
+
+With `ild_report()`, you can export in one call:
+
+```{r report_export}
+tmp2 <- tempfile(fileext = ".yaml")
+r2 <- ild_report(fit, export_provenance_path = tmp2)
+r2$provenance_export_path
+```
+
+## 9. Compare two pipelines
+
+Use `ild_compare_pipelines()` to see how two objects differ (e.g. different gap thresholds, lag modes, or model formula).
+
+```{r compare_setup}
+x2 <- ild_prepare(d, id = "id", time = "time", gap_threshold = 3600)
+x2 <- ild_center(x2, y)
+x2 <- ild_lag(x2, y, n = 1, mode = "index")
+fit2 <- ild_lme(y ~ y_bp + y_wp + (1 | id), data = x2, ar1 = FALSE, warn_no_ar1 = FALSE)
+```
+
+```{r compare}
+cmp <- ild_compare_pipelines(fit, fit2)
+cmp
+```
+
+This makes it easy to document sensitivity analyses or to check what changed between two analyses.

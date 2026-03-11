@@ -1,6 +1,6 @@
 # tidyILD
 
-Tidyverse-native toolkit for **intensive longitudinal data (ILD)**.  
+A **reproducible, tidyverse-style framework** for intensive longitudinal data (ILD) analysis in R, with built-in methodological safeguards, **provenance tracking**, and reporting tools.  
 Author: **Alex Litovchenko**.
 
 ## Install
@@ -59,6 +59,9 @@ diag <- ild_diagnostics(fit); diag; plot_ild_diagnostics(diag)
 - `ild_missing_bias()` — test if missingness is associated with a predictor (informative missingness)
 - `ild_align()` — align secondary stream (e.g. wearables) to primary ILD within a time window
 - `ild_lme()` — mixed-effects model (lmer or nlme with AR1/CAR1)
+- `ild_robust_se()` — cluster-robust variance (clubSandwich); `tidy_ild_model(fit, se = "robust")` for robust SE/CI/p
+- `ild_missing_model()` — model missingness from covariates; `ild_ipw_weights()` and `ild_ipw_refit()` for IPW sensitivity
+- `ild_tvem()` — time-varying effects (GAM); `ild_tvem_plot()` for the coefficient curve
 - `ild_person_model()` — fit model per person (N-of-1); `ild_person_distribution()` — plot distribution of estimates
 - `ild_diagnostics()` — residual ACF, residuals vs fitted/time (use `print()` for summary)
 - `plot_ild_diagnostics()` — build diagnostic plots from an `ild_diagnostics` object
@@ -66,7 +69,7 @@ diag <- ild_diagnostics(fit); diag; plot_ild_diagnostics(diag)
 - `ild_heatmap()`, `ild_spaghetti()` — aliases for heatmap and trajectory plots
 - `ild_circadian()` — variable by hour of day (when time is POSIXct)
 - `augment_ild_model()` — tibble with .ild_id, .ild_time, outcome, .fitted, .resid
-- `tidy_ild_model()` — fixed-effect table (estimate, SE, CI, p) for both engines
+- `tidy_ild_model()` — fixed-effect table (estimate, SE, CI, p); use `se = "robust"` for cluster-robust inference
 - `ild_simulate()` — simulated ILD (n_id, n_time/n_obs_per, ar1, wp_effect, bp_effect, irregular)
 - `ild_power()` — simulation-based power for a fixed effect (ild_simulate → ild_lme → effect recovery)
 - `ema_example` — built-in dataset (`data(ema_example)`)

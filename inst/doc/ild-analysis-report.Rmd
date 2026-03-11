@@ -36,6 +36,12 @@ fit <- ild_lme(y ~ y_bp + y_wp + (1 | id), data = x, ar1 = FALSE, warn_no_ar1 = 
 tidy_ild_model(fit)
 ```
 
+With cluster-robust standard errors (requires the **clubSandwich** package):
+
+```{r tidy_robust, eval = requireNamespace("clubSandwich", quietly = TRUE)}
+tidy_ild_model(fit, se = "robust", robust_type = "CR2")
+```
+
 ## 3. Fitted vs observed
 
 ```{r fitted_plot, fig.alt = "Fitted vs observed"}
@@ -76,4 +82,17 @@ if (!is.null(fit_ar1)) {
   diag_ar1 <- ild_diagnostics(fit_ar1, type = c("residual_acf", "qq"))
   diag_ar1
 }
+```
+
+## Time-varying effects (TVEM)
+
+When the effect of a predictor may change over time (e.g. stronger in the morning), use `ild_tvem()` to fit a GAM with a smooth in time and a time-varying coefficient. The plot shows how the effect of the predictor varies over the study timeline; interpret the curve as the estimated effect at each time point (with uncertainty band).
+
+```{r tvem}
+set.seed(101)
+d2 <- ild_simulate(n_id = 6, n_obs_per = 12, seed = 101)
+d2$x <- rnorm(nrow(d2))
+x2 <- ild_prepare(d2, id = "id", time = "time")
+tv <- ild_tvem(x2, "y", "x", k = 5, re_id = TRUE)
+ild_tvem_plot(tv)
 ```

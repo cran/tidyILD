@@ -4,7 +4,14 @@
 \alias{tidy_ild_model}
 \title{Tidy fixed effects from an ILD model fit}
 \usage{
-tidy_ild_model(fit, conf_level = 0.95, object = FALSE, ...)
+tidy_ild_model(
+  fit,
+  conf_level = 0.95,
+  object = FALSE,
+  se = c("model", "robust"),
+  robust_type = c("CR2", "CR3", "CR0"),
+  ...
+)
 }
 \arguments{
 \item{fit}{A fitted model from [ild_lme()] (lmerMod or lme).}
@@ -14,7 +21,14 @@ tidy_ild_model(fit, conf_level = 0.95, object = FALSE, ...)
 \item{object}{Logical. If \code{TRUE}, return a list with \code{meta} and \code{table}
 and class \code{tidyild_model} for polished printing (default \code{FALSE}).}
 
-\item{...}{Unused.}
+\item{se}{Character. \code{"model"} (default) uses the model's standard errors;
+\code{"robust"} uses cluster-robust SEs from [ild_robust_se()] (requires
+\pkg{clubSandwich}).}
+
+\item{robust_type}{Character. When \code{se = "robust"}, the correction type:
+\code{"CR2"} (recommended), \code{"CR3"}, or \code{"CR0"}.}
+
+\item{...}{Passed to [ild_robust_se()] when \code{se = "robust"} (e.g. \code{cluster}, \code{cluster_vec}).}
 }
 \value{
 A tibble, or when \code{object = TRUE} a list of class \code{tidyild_model}.
@@ -26,3 +40,11 @@ lmer and lme engines: \code{term}, \code{estimate}, \code{std_error},
 returns an object of class \code{tidyild_model} (meta + table) for use with
 \code{print.tidyild_model}.
 }
+\section{Model-based vs robust SE}{
+
+With \code{se = "model"} (default), standard errors and CIs come from the fitted
+model. With \code{se = "robust"}, cluster-robust (sandwich) SEs are used;
+CIs and p-values are based on a Wald normal approximation. Install the
+\pkg{clubSandwich} package to use robust SEs.
+}
+

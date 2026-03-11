@@ -67,5 +67,10 @@ ild_align <- function(primary, secondary, value_var, window,
   }
   out <- tibble::as_tibble(primary)
   out[[paste0(value_var, "_aligned")]] <- aligned
-  restore_ild_attrs(primary, out)
+  out <- restore_ild_attrs(primary, out)
+  out <- ild_add_step(out, "ild_align",
+    list(value_var = value_var, window = window, time_secondary = time_secondary, fun = fun),
+    list(created = paste0(value_var, "_aligned"))
+  )
+  out
 }

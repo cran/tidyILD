@@ -213,5 +213,15 @@ ild_power <- function(formula,
       converged = sim_results$converged
     )
   }
+  attr(out, "ild_provenance") <- ild_new_analysis_provenance(NULL, "ild_power", list(
+    formula = deparse(formula),
+    n_sim = n_sim,
+    n_id = n_id,
+    n_obs_per = n_obs_per,
+    effect_size = effect_size,
+    test_term = test_term,
+    alpha = alpha,
+    ar1 = ar1
+  ), list(n_reject = n_reject, n_converged = n_converged, n_failed = n_failed, power = power))
   out
 }

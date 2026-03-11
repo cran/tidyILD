@@ -71,13 +71,22 @@ ild_prepare <- function(data,
   spacing$by_id <- ild_spacing_by_id(out, ".ild_id", ".ild_dt",
     gap_threshold = if (is.finite(gap_threshold)) gap_threshold else NULL)
 
-  new_ild_df(
+  out <- new_ild_df(
     data = out,
     ild_id = id,
     ild_time = time,
     gap_threshold = gap_threshold,
     spacing = spacing
   )
+  out <- ild_add_step(out, "ild_prepare",
+    list(id = id, time = time, gap_threshold = gap_threshold, duplicate_handling = duplicate_handling),
+    list(
+      n_id = attr(out, "ild_n_units", exact = TRUE),
+      n_obs = attr(out, "ild_n_obs", exact = TRUE),
+      spacing_class = ild_spacing_class(out)
+    )
+  )
+  out
 }
 
 #' Within each .ild_id, resolve duplicates by keeping first/last row per .ild_time_num, error, or collapse

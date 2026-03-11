@@ -43,9 +43,11 @@ ild_lag <- function(x, ..., n = 1L, mode = c("index", "gap_aware", "time_window"
   dt_col <- ".ild_dt"
   time_num_col <- ".ild_time_num"
   out <- x
+  created_nms <- character(0)
   for (v in vars) {
     if (!v %in% names(out)) stop("Variable '", v, "' not found in data.", call. = FALSE)
     lag_nm <- if (mode == "time_window") paste0(v, "_lag_window") else paste0(v, "_lag", n)
+    created_nms <- c(created_nms, lag_nm)
     out <- dplyr::group_by(out, .data[[id_col]])
     if (mode == "index") {
       out <- dplyr::mutate(out, !!lag_nm := dplyr::lag(.data[[v]], n = n, default = NA))
@@ -60,7 +62,12 @@ ild_lag <- function(x, ..., n = 1L, mode = c("index", "gap_aware", "time_window"
     }
     out <- dplyr::ungroup(out)
   }
-  restore_ild_attrs(x, out)
+  out <- restore_ild_attrs(x, out)
+  out <- ild_add_step(out, "ild_lag",
+    list(vars = vars, n = n, mode = mode, max_gap = max_gap, window = window, resolution = resolution),
+    list(created = created_nms)
+  )
+  out
 }
 
 #' For one person's vector: lag by n rows, NA if any dt in the window > max_gap

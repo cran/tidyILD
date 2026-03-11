@@ -16,6 +16,9 @@ fit <- ild_lme(y ~ y_bp + y_wp + (1 | id), data = x, ar1 = FALSE, warn_no_ar1 = 
 ## ----tidy---------------------------------------------------------------------
 tidy_ild_model(fit)
 
+## ----tidy_robust, eval = requireNamespace("clubSandwich", quietly = TRUE)-----
+tidy_ild_model(fit, se = "robust", robust_type = "CR2")
+
 ## ----fitted_plot, fig.alt = "Fitted vs observed"------------------------------
 ild_plot(fit, type = "fitted")
 
@@ -44,4 +47,12 @@ if (!is.null(fit_ar1)) {
 #   diag_ar1 <- ild_diagnostics(fit_ar1, type = c("residual_acf", "qq"))
 #   diag_ar1
 # }
+
+## ----tvem---------------------------------------------------------------------
+set.seed(101)
+d2 <- ild_simulate(n_id = 6, n_obs_per = 12, seed = 101)
+d2$x <- rnorm(nrow(d2))
+x2 <- ild_prepare(d2, id = "id", time = "time")
+tv <- ild_tvem(x2, "y", "x", k = 5, re_id = TRUE)
+ild_tvem_plot(tv)
 

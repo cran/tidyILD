@@ -102,6 +102,13 @@ ild_lme <- function(formula,
     attr(fit, "ild_ar1") <- TRUE
     attr(fit, "ild_correlation_class") <- cor_class
     attr(fit, "ild_random_resolved") <- random_form
+    attr(fit, "ild_provenance") <- ild_new_analysis_provenance(data, "ild_lme", list(
+      formula = deparse(formula),
+      random = deparse(random_form),
+      ar1 = TRUE,
+      correlation_class = cor_class,
+      method = "lme"
+    ), list(n_obs = nrow(data), n_id = length(unique(data[[".ild_id"]]))))
     class(fit) <- c(class(fit), "ild_lme")
     return(fit)
   }
@@ -114,6 +121,12 @@ ild_lme <- function(formula,
   fit <- lme4::lmer(formula, data = data, ...)
   attr(fit, "ild_data") <- data  # both engines set ild_data for augment_ild_model/diagnostics
   attr(fit, "ild_ar1") <- FALSE
+  attr(fit, "ild_provenance") <- ild_new_analysis_provenance(data, "ild_lme", list(
+    formula = deparse(formula),
+    ar1 = FALSE,
+    correlation_class = NA_character_,
+    method = "lmer"
+  ), list(n_obs = nrow(data), n_id = length(unique(data[[".ild_id"]]))))
   # Do not add ild_lme to class for S4 lmerMod (breaks residuals/fitted dispatch)
   fit
 }
