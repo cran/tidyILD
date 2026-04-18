@@ -7,13 +7,15 @@
 #'
 #' @param fit_or_formula Either a fitted model from [ild_lme()] (lmerMod), or a
 #'   formula. If a formula, \code{data} and \code{weights} are required.
-#' @param data An ILD object (see [is_ild()]) containing a \code{.ipw} column
-#'   when refitting from a fit (or the data to fit when \code{fit_or_formula} is a formula).
+#' @param data An ILD object (see [is_ild()]) containing a weight column (default \code{.ipw})
+#'   from [ild_ipw_weights()] or joint MSM weights from [ild_joint_msm_weights()], when refitting
+#'   from a fit (or the data to fit when \code{fit_or_formula} is a formula).
 #' @param weights Character. Name of the weight column in \code{data} (default \code{".ipw"}).
 #' @param ar1 Logical. Must be \code{FALSE} for IPW refit (nlme weighted refit not supported).
 #' @param ... Passed to [ild_lme()] or \code{lme4::lmer()}.
 #' @return A fitted model (lmerMod) with \code{attr(..., "ild_data")} set so that
-#'   [tidy_ild_model()] and [ild_diagnostics()] work.
+#'   [tidy_ild_model()] and [ild_diagnostics()] work. For inference under estimated
+#'   weights, see [ild_msm_bootstrap()] and [ild_msm_inference].
 #' @export
 #' @examples
 #' set.seed(1)

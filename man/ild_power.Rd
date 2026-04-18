@@ -91,3 +91,8 @@ res <- ild_power(
 res$power
 res$n_reject
 }
+\seealso{
+[ild_recovery_metrics()] to summarize bias, RMSE, and coverage from
+  \code{return_sims}. \href{../doc/benchmark-simulation-recovery.html}{\code{vignette("benchmark-simulation-recovery", package = "tidyILD")}}
+  (worked example).
+}

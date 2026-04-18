@@ -1,0 +1,129 @@
+---
+title: "MSM Identification and Recovery in tidyILD"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{MSM Identification and Recovery in tidyILD}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+## Why this vignette exists
+
+This vignette documents the **identification assumptions** behind the MSM/IPW workflow and
+shows how to run the causal recovery harness added for regression testing and simulation-based checks.
+
+## Identification assumptions
+
+In this workflow, interpretation of weighted outcome contrasts depends on:
+
+1. **Sequential exchangeability**: all confounders needed for treatment assignment at each \(t\)
+   are captured in the history set used for IPTW.
+2. **Positivity / overlap**: treatment probabilities are bounded away from 0 and 1 in relevant strata.
+3. **Consistency**: observed outcomes under observed treatment history equal potential outcomes under that same history.
+4. **Correct weight models**: treatment and censoring models are correctly specified.
+
+Use diagnostics to stress-test these assumptions:
+
+- `ild_msm_balance()` for weighted SMD checks;
+- `ild_ipw_ess()` for effective sample size;
+- `ild_msm_overlap_plot()` for propensity overlap;
+- `ild_diagnose(..., balance = TRUE, ...)` for integrated causal diagnostics + guardrails.
+
+## Estimand-first + history-builder workflow (v1)
+
+```{r eval = FALSE}
+library(tidyILD)
+
+d <- ild_msm_simulate_scenario(n_id = 100, n_obs_per = 12, true_ate = 0.5, seed = 101)
+d <- ild_center(d, y)
+
+hist_spec <- ild_msm_history_spec(vars = c("stress", "trt"), lags = 1:2)
+d <- ild_build_msm_history(d, hist_spec)
+
+estimand <- ild_msm_estimand(type = "ate", regime = "static", treatment = "trt")
+
+fit_obj <- ild_msm_fit(
+  estimand = estimand,
+  data = d,
+  outcome_formula = y ~ y_bp + y_wp + stress + trt + (1 | id),
+  history = ~ stress_lag1 + trt_lag1,
+  predictors_censor = "stress",
+  inference = "bootstrap",
+  n_boot = 200,
+  strict_inference = FALSE
+)
+
+fit_obj
+fit_obj$inference$status
+fit_obj$inference$reason
+```
+
+## Recovery harness
+
+```{r eval = FALSE}
+rec <- ild_msm_recovery(
+  n_sim = 100,
+  n_id = 120,
+  n_obs_per = 12,
+  true_ate = 0.5,
+  n_boot = 200,
+  inference = "bootstrap",
+  seed = 1001,
+  censoring = TRUE
+)
+
+rec$summary
+rec$summary_by_scenario
+```
+
+Scenario-grid validation (positivity stress and treatment-model misspecification):
+
+```{r eval = FALSE}
+grid <- tibble::tibble(
+  scenario_id = c("baseline", "positivity_stress", "misspecified_treatment"),
+  positivity_stress = c(1, 1.8, 1),
+  misspec_treatment_model = c(FALSE, FALSE, TRUE)
+)
+
+rec_grid <- ild_msm_recovery(
+  n_sim = 50,
+  n_id = 120,
+  n_obs_per = 12,
+  true_ate = 0.5,
+  n_boot = 200,
+  inference = "bootstrap",
+  scenario_grid = grid,
+  seed = 1101
+)
+
+rec_grid$summary_by_scenario
+```
+
+Interpretation:
+
+- `bias` and `rmse` target point-estimate recovery;
+- `coverage` targets interval calibration under the chosen inference mode;
+- `ess_mean` / `ess_min` and `weight_ratio_median` summarize positivity stress.
+
+## Inference caveats and strict mode
+
+- `inference = "robust"` can degrade on weighted `lmer` paths where robust
+  variance is not supported.
+- `ild_msm_fit()` records this explicitly in:
+  - `fit_obj$inference$status` (`"ok"`, `"degraded"`, `"unsupported"`),
+  - `fit_obj$inference$reason` (machine-readable reason code),
+  - `fit_obj$inference$message` (user-facing explanation).
+- Set `strict_inference = TRUE` to error instead of degrading.
+- Use `ild_msm_bootstrap(..., weight_policy = "reestimate_weights")` when you
+  want first-stage weight uncertainty represented in intervals.
+
+## Notes on v1 scope
+
+- v1.1 estimand schema accepts static and dynamic regime specs, but dynamic
+  weighting is still scaffold-only in `ild_msm_fit` and will report degraded
+  status unless strict mode is enabled.
+- Joint Bayesian MSM estimation is out of scope in v1 (see `?ild_msm_inference`).

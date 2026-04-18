@@ -128,6 +128,12 @@ test_that("ild_prepare spacing by_id has one row per person and correct stats", 
   expect_equal(by_id$pct_gap, c(100, 50))
 })
 
+test_that("ild_prepare requires both id and time unless data is tbl_ts", {
+  d <- data.frame(id = 1, time = 1, x = 1)
+  expect_error(ild_prepare(d), regexp = "tsibble|Provide both")
+  expect_error(ild_prepare(d, id = "id"), "both id and time")
+})
+
 test_that("ild_prepare duplicate_handling collapse aggregates with collapse_fn", {
   d <- data.frame(
     id = c(1, 1, 1),

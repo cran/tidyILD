@@ -1,0 +1,99 @@
+---
+title: "State-space modeling in tidyILD with KFAS"
+author: "Alex Litovchenko"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{State-space modeling in tidyILD with KFAS}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 4
+)
+has_kfas <- requireNamespace("KFAS", quietly = TRUE)
+```
+
+## What is a state-space model?
+
+In a **state-space** (or **dynamic linear**) model, you observe a sequence \(y_1,\ldots,y_T\) and posit **latent** states \(\alpha_t\) that evolve over time and drive the observations. A minimal Gaussian **local level** model is:
+
+- **State:** \(\alpha_t = \alpha_{t-1} + \eta_t\) with \(\eta_t \sim \mathcal{N}(0, Q)\) (random walk).
+- **Observation:** \(y_t = \alpha_t + \varepsilon_t\) with \(\varepsilon_t \sim \mathcal{N}(0, H)\).
+
+So the "level" of the process drifts slowly; the data are noisy measurements of that level. In **tidyILD**, `ild_kfas(..., state_spec = "local_level")` fits this structure (via **KFAS**) for a **single** time series per call—one distinct `.ild_id` after `ild_prepare()`.
+
+## When use this instead of mixed-model residual correlation?
+
+**Multilevel models** (`ild_lme()`, `ild_brms()`) are the right tool when you want **population** inference: fixed and random effects across many persons, within/between decomposition, and **residual** dynamics (e.g. AR1 or CAR1 on the **within-person** residuals) as a **nuisance** correlation structure.
+
+**State-space** models in this package focus on **explicit latent dynamics** for **one** series at a time: estimating a **time-varying level** (or, in future specs, trend or AR) in **state space**, with diagnostics built on **one-step-ahead innovations** from the Kalman filter.
+
+Conceptual contrast:
+
+- **AR1 on residuals (nlme / lme):** correlation among **errors** around a smooth mean structure.
+- **Local level (KFAS):** the **mean** itself is a **random walk** and is **smoothed**; the "residual" is often summarized as **standardized prediction errors** (innovations).
+
+Neither replaces the other in general—choose based on whether your primary goal is **hierarchical population inference** or **structured univariate latent dynamics** for one person (or one series).
+
+## Filtered vs smoothed states
+
+In **ILD** terms:
+
+- **Filtered** (“online” / **nowcast**): your best estimate of the latent level **at occasion *t* using only measurements up through *t***—what the model would have said about the state **at that moment** as data arrived. Useful when you think about **sequential** self-report or real-time summaries.
+- **Smoothed** (“offline” / **full-history**): your best estimate of the level **at each occasion using the entire series**—what you report after seeing **all** waves, including revising earlier time points. This is usually what you want for **scientific summaries** of a completed diary or EMA study.
+
+Formally, after fitting, **KFAS** runs [`KFS()`](https://CRAN.R-project.org/package=KFAS) to obtain:
+
+- **Filtered** state: \(E(\alpha_t \mid y_1,\ldots,y_t)\). In KFAS output this is often `att`.
+- **Smoothed** state: \(E(\alpha_t \mid y_1,\ldots,y_T)\). In KFAS output this is often `alphahat`.
+
+In **tidyILD**, `ild_kfas(..., smoother = TRUE)` requests smoothing in `KFS()`; when `FALSE`, smoothed states may be unavailable or less central. Use `ild_plot_filtered_vs_smoothed()` to compare the first latent state over time.
+
+## Minimal example
+
+If the **KFAS** package is installed, you can run:
+
+```{r example, eval = has_kfas}
+library(tidyILD)
+set.seed(1)
+d <- ild_simulate(n_id = 1, n_obs_per = 60, seed = 42)
+x <- ild_prepare(d, id = "id", time = "time")
+x <- ild_center(x, y)
+fit <- suppressWarnings(
+  ild_kfas(x, outcome = "y", state_spec = "local_level", time_units = "sim_steps")
+)
+b <- ild_diagnose(fit)
+class(b)
+ild_autoplot(b, section = "residual", type = "acf")
+```
+
+If **KFAS** is not installed, install it with `install.packages("KFAS")` and load **tidyILD**; the same code then runs end-to-end.
+
+## What the backend does not yet do
+
+Read this section before relying on **KFAS** in a paper or preregistration. The normative scope document `inst/dev/KFAS_V1_BACKEND.md` in the package source has full detail; the points below are the **trust** boundaries for **v1**.
+
+**What `ild_kfas()` is:**
+
+- **Discrete-time state-space** modeling: the latent state advances **one step per observation** (row order after `ild_prepare()` for that series). This is standard dynamic linear modeling on an **index**, not a continuous-time differential equation.
+
+**What it is not (today):**
+
+- **Not** **ctsem**-style (or similar) **continuous-time** latent dynamics with unequal physical intervals baked into the transition model. Those workflows are a **later tier**; this backend does not replace them for that use case.
+- **Not** a **multilevel latent-state model**: there is **no** pooled latent trajectory across persons in v1. Fitting one series per call is the supported semantics; **pooling mode** across IDs is **limited** (see the backend doc). Stacking independent per-person fits is explicit via **`fit_context`** and guardrails—not hierarchical partial pooling of a shared state.
+- **`local_level` only** in v1; other `state_spec` labels (`local_trend`, `ar1_state`, `regression_local_level`, …) are **reserved** for later releases.
+- **Optional short-horizon forecasts** and richer **uncertainty** quantification are **planned**; see `?ild_plot_forecast` and `NEWS.md`.
+
+**Irregular timing:** see `vignette("kfas-irregular-timing-spacing", package = "tidyILD")`—tidyILD **diagnoses** spacing; the KFAS wrapper fits under **discrete-time** choices and does not, by itself, “solve” irregular measurement in a continuous-time sense.
+
+## See also
+
+- `vignette("kfas-irregular-timing-spacing", package = "tidyILD")` — irregular measurement and spacing diagnostics.
+- `vignette("kfas-choosing-backend", package = "tidyILD")` — **lme/nlme**, **brms**, and **KFAS**.
+- `vignette("ild-decomposition-and-spacing", package = "tidyILD")` — within/between and **spacing** tools.

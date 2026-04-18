@@ -9,7 +9,9 @@
 #' @return A list with elements: \code{summary} (one-row tibble with n_id, n_obs,
 #'   time_min, time_max, prop_gap, median_dt_sec, iqr_dt_sec), \code{n_units},
 #'   \code{n_obs}, \code{time_range}, \code{spacing}, \code{n_gaps}, \code{pct_gap}.
-#'   The \code{summary} tibble is the primary contract for programmatic use.
+#'   If \code{ild_prepare()} was run on a \code{tbl_ts}, \code{tsibble} is also
+#'   present (same as [ild_tsibble_meta()]). The \code{summary} tibble is the
+#'   primary contract for programmatic use.
 #' @importFrom tibble tibble
 #' @export
 ild_summary <- function(x) {
@@ -34,7 +36,7 @@ ild_summary <- function(x) {
     median_dt_sec = median_dt_sec,
     iqr_dt_sec = iqr_dt_sec
   )
-  list(
+  out <- list(
     summary = summary_tbl,
     n_units = n_units,
     n_obs = n_obs,
@@ -43,4 +45,9 @@ ild_summary <- function(x) {
     n_gaps = n_gaps,
     pct_gap = meta$ild_spacing$pct_gap
   )
+  tsb <- ild_tsibble_meta(x)
+  if (!is.null(tsb)) {
+    out$tsibble <- tsb
+  }
+  out
 }

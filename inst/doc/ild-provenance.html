@@ -12,7 +12,7 @@
 
 <meta name="author" content="Alex Litovchenko" />
 
-<meta name="date" content="2026-03-06" />
+<meta name="date" content="2026-04-17" />
 
 <title>Reproducible ILD workflows with tidyILD provenance</title>
 
@@ -342,7 +342,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <h1 class="title toc-ignore">Reproducible ILD workflows with tidyILD
 provenance</h1>
 <h4 class="author">Alex Litovchenko</h4>
-<h4 class="date">2026-03-06</h4>
+<h4 class="date">2026-04-17</h4>
 
 
 
@@ -379,24 +379,24 @@ a report, export provenance, and compare two pipelines.</p>
 <p><code>ild_history()</code> prints a human-readable log of all
 preprocessing and analysis steps recorded on the object.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">ild_history</span>(x)</span>
-<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt; ILD provenance (tidyILD 0.3.0)</span></span>
-<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt;   1. ild_prepare @ 2026-03-06T23:08:44</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt; ILD provenance (tidyILD 0.4.0)</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt;   1. ild_prepare @ 2026-04-17T22:16:12</span></span>
 <span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt;       args: id, time, gap_threshold, duplicate_handling</span></span>
-<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt;       outputs: n_id, n_obs, spacing_class</span></span>
-<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt;   2. ild_center @ 2026-03-06T23:08:44</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt;       outputs: n_id, n_obs, spacing_class, source_was_tsibble, tsibble_interval_declared</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt;   2. ild_center @ 2026-04-17T22:16:12</span></span>
 <span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt;       args: vars, type, naming</span></span>
 <span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt;       outputs: created</span></span>
-<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt;   3. ild_lag @ 2026-03-06T23:08:44</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt;   3. ild_lag @ 2026-04-17T22:16:12</span></span>
 <span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt;       args: vars, n, mode, max_gap, window, resolution</span></span>
 <span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co">#&gt;       outputs: created</span></span></code></pre></div>
 <p>For a model fit, provenance includes the source data steps plus the
 analysis step:</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">ild_history</span>(fit)</span>
-<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="co">#&gt; ILD analysis provenance (tidyILD 0.3.0)</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="co">#&gt; ILD analysis provenance (tidyILD 0.4.0)</span></span>
 <span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt;   [Source data steps: 3]</span></span>
-<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt;   1. ild_lme @ 2026-03-06T23:08:44</span></span>
-<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt;       args: formula, ar1, correlation_class, method</span></span>
-<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt;       outputs: n_obs, n_id</span></span></code></pre></div>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt;   1. ild_lme @ 2026-04-17T22:16:12</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt;       args: formula, ar1, correlation_class, method, backend</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt;       outputs: n_obs, n_id, fit_engine, backend_version</span></span></code></pre></div>
 </div>
 <div id="generate-ild_methods" class="section level2">
 <h2>6. Generate ild_methods()</h2>
@@ -417,26 +417,31 @@ n_id, engine), methods text, the fixed-effects table, a diagnostics
 summary, provenance, and an optional export path.</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>r <span class="ot">&lt;-</span> <span class="fu">ild_report</span>(fit)</span>
 <span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="fu">names</span>(r)</span>
-<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="co">#&gt; [1] &quot;meta&quot;                   &quot;methods&quot;                &quot;model_table&quot;           </span></span>
-<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co">#&gt; [4] &quot;diagnostics_summary&quot;    &quot;provenance&quot;             &quot;provenance_export_path&quot;</span></span>
-<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>r<span class="sc">$</span>meta</span>
-<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co">#&gt; $n_obs</span></span>
-<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co">#&gt; [1] 80</span></span>
-<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="co">#&gt; $n_id</span></span>
-<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co">#&gt; [1] 8</span></span>
-<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a><span class="co">#&gt; $engine</span></span>
-<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="co">#&gt; [1] &quot;lmer&quot;</span></span>
-<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a>r<span class="sc">$</span>methods</span>
-<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Data were prepared using ild_prepare() with participant ID id, time variable time, and a gap threshold of 7200 units (spacing class: irregular-ish) (N = 8 persons, n = 80 observations). Predictor(s) y were person-mean centered using ild_center(), creating y_bp, y_wp. A gap_aware lag of y was computed using ild_lag() with lag 1 and max gap 7200, creating y_lag1. A mixed-effects model was fit using ild_lme() (lmer) with formula y ~ y_bp + y_wp + (1 | id) with AR1 disabled (n = 80 observations, N = 8 persons).&quot;</span></span>
-<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a>r<span class="sc">$</span>model_table</span>
-<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 6</span></span>
-<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a><span class="co">#&gt;   term        estimate std_error    ci_low  ci_high p_value</span></span>
-<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt;</span></span>
-<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a><span class="co">#&gt; 1 (Intercept) 5.29e-17  5.16e-17 -4.82e-17 1.54e-16      NA</span></span>
-<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a><span class="co">#&gt; 2 y_bp        1   e+ 0  5.66e-17  1   e+ 0 1   e+ 0      NA</span></span>
-<span id="cb9-22"><a href="#cb9-22" tabindex="-1"></a><span class="co">#&gt; 3 y_wp        1.00e+ 0  8.24e-17  1   e+ 0 1.00e+ 0      NA</span></span></code></pre></div>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="co">#&gt; [1] &quot;meta&quot;                    &quot;methods&quot;                </span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co">#&gt; [3] &quot;model_table&quot;             &quot;diagnostics_summary&quot;    </span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co">#&gt; [5] &quot;provenance&quot;              &quot;provenance_export_path&quot; </span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co">#&gt; [7] &quot;methods_with_guardrails&quot;</span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>r<span class="sc">$</span>meta</span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="co">#&gt; $n_obs</span></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="co">#&gt; [1] 80</span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="co">#&gt; $n_id</span></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a><span class="co">#&gt; [1] 8</span></span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a><span class="co">#&gt; $engine</span></span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a><span class="co">#&gt; [1] &quot;lmer&quot;</span></span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a>r<span class="sc">$</span>methods</span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Data were prepared using ild_prepare() with participant ID id, time variable time, and a gap threshold of 7200 units (spacing class: irregular-ish) (N = 8 persons, n = 80 observations). Predictor(s) y were person-mean centered using ild_center(), creating y_bp, y_wp. A gap_aware lag of y was computed using ild_lag() with lag 1 and max gap 7200, creating y_lag1. A mixed-effects model was fit using ild_lme() (lmer) with formula y ~ y_bp + y_wp + (1 | id) with AR1 disabled (n = 80 observations, N = 8 persons).&quot;</span></span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a>r<span class="sc">$</span>model_table</span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 18</span></span>
+<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a><span class="co">#&gt;   term   component effect_level estimate std_error  conf_low conf_high statistic</span></span>
+<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;  &lt;chr&gt;     &lt;chr&gt;           &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;</span></span>
+<span id="cb9-22"><a href="#cb9-22" tabindex="-1"></a><span class="co">#&gt; 1 (Inte… fixed     population   5.29e-17  5.16e-17 -4.82e-17  1.54e-16   1.03e 0</span></span>
+<span id="cb9-23"><a href="#cb9-23" tabindex="-1"></a><span class="co">#&gt; 2 y_bp   fixed     between      1   e+ 0  5.66e-17  1   e+ 0  1   e+ 0   1.77e16</span></span>
+<span id="cb9-24"><a href="#cb9-24" tabindex="-1"></a><span class="co">#&gt; 3 y_wp   fixed     within       1.00e+ 0  8.24e-17  1   e+ 0  1.00e+ 0   1.21e16</span></span>
+<span id="cb9-25"><a href="#cb9-25" tabindex="-1"></a><span class="co">#&gt; # ℹ 10 more variables: p_value &lt;dbl&gt;, interval_type &lt;chr&gt;, engine &lt;chr&gt;,</span></span>
+<span id="cb9-26"><a href="#cb9-26" tabindex="-1"></a><span class="co">#&gt; #   model_class &lt;chr&gt;, rhat &lt;dbl&gt;, ess_bulk &lt;dbl&gt;, ess_tail &lt;dbl&gt;, pd &lt;dbl&gt;,</span></span>
+<span id="cb9-27"><a href="#cb9-27" tabindex="-1"></a><span class="co">#&gt; #   rope_low &lt;dbl&gt;, rope_high &lt;dbl&gt;</span></span></code></pre></div>
 <p>The return schema is stable: <code>meta</code>, <code>methods</code>,
 <code>model_table</code>, <code>diagnostics_summary</code>,
 <code>provenance</code>, <code>provenance_export_path</code>.</p>
@@ -449,18 +454,18 @@ for reproducibility supplements or archiving.</p>
 <span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="fu">ild_export_provenance</span>(fit, tmp, <span class="at">format =</span> <span class="st">&quot;json&quot;</span>)</span>
 <span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="fu">readLines</span>(tmp, <span class="at">n =</span> <span class="dv">20</span>)</span>
 <span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">#&gt;  [1] &quot;{&quot;                                              </span></span>
-<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">#&gt;  [2] &quot;  \&quot;version\&quot;: \&quot;0.3.0\&quot;,&quot;                      </span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">#&gt;  [2] &quot;  \&quot;version\&quot;: \&quot;0.4.0\&quot;,&quot;                      </span></span>
 <span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#&gt;  [3] &quot;  \&quot;schema_version\&quot;: \&quot;1\&quot;,&quot;                   </span></span>
 <span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">#&gt;  [4] &quot;  \&quot;object_type\&quot;: \&quot;ild_model\&quot;,&quot;              </span></span>
 <span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt;  [5] &quot;  \&quot;source_data_provenance\&quot;: {&quot;                </span></span>
-<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt;  [6] &quot;    \&quot;version\&quot;: \&quot;0.3.0\&quot;,&quot;                    </span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt;  [6] &quot;    \&quot;version\&quot;: \&quot;0.4.0\&quot;,&quot;                    </span></span>
 <span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#&gt;  [7] &quot;    \&quot;schema_version\&quot;: \&quot;1\&quot;,&quot;                 </span></span>
 <span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="co">#&gt;  [8] &quot;    \&quot;object_type\&quot;: \&quot;ild_data\&quot;,&quot;             </span></span>
 <span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co">#&gt;  [9] &quot;    \&quot;steps\&quot;: [&quot;                               </span></span>
 <span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="co">#&gt; [10] &quot;      {&quot;                                        </span></span>
 <span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="co">#&gt; [11] &quot;        \&quot;step_id\&quot;: \&quot;1\&quot;,&quot;                    </span></span>
 <span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a><span class="co">#&gt; [12] &quot;        \&quot;step\&quot;: \&quot;ild_prepare\&quot;,&quot;             </span></span>
-<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a><span class="co">#&gt; [13] &quot;        \&quot;timestamp\&quot;: \&quot;2026-03-06T23:08:44\&quot;,&quot;</span></span>
+<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a><span class="co">#&gt; [13] &quot;        \&quot;timestamp\&quot;: \&quot;2026-04-17T22:16:12\&quot;,&quot;</span></span>
 <span id="cb10-17"><a href="#cb10-17" tabindex="-1"></a><span class="co">#&gt; [14] &quot;        \&quot;args\&quot;: {&quot;                            </span></span>
 <span id="cb10-18"><a href="#cb10-18" tabindex="-1"></a><span class="co">#&gt; [15] &quot;          \&quot;id\&quot;: \&quot;id\&quot;,&quot;                      </span></span>
 <span id="cb10-19"><a href="#cb10-19" tabindex="-1"></a><span class="co">#&gt; [16] &quot;          \&quot;time\&quot;: \&quot;time\&quot;,&quot;                  </span></span>
@@ -472,7 +477,7 @@ for reproducibility supplements or archiving.</p>
 <div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>tmp2 <span class="ot">&lt;-</span> <span class="fu">tempfile</span>(<span class="at">fileext =</span> <span class="st">&quot;.yaml&quot;</span>)</span>
 <span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>r2 <span class="ot">&lt;-</span> <span class="fu">ild_report</span>(fit, <span class="at">export_provenance_path =</span> tmp2)</span>
 <span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>r2<span class="sc">$</span>provenance_export_path</span>
-<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">#&gt; [1] &quot;/var/folders/3s/mxnfwt994sz7kmhmwt__s12m0000gn/T//RtmpKIuO6B/file15c48233a9a9c.yaml&quot;</span></span></code></pre></div>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">#&gt; [1] &quot;/var/folders/3s/mxnfwt994sz7kmhmwt__s12m0000gn/T//RtmpidZYqn/file645b5f4e2787.yaml&quot;</span></span></code></pre></div>
 </div>
 <div id="compare-two-pipelines" class="section level2">
 <h2>9. Compare two pipelines</h2>

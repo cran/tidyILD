@@ -56,7 +56,7 @@ test_that("ild_ipw_refit runs and returns lmerMod with ild_data", {
   expect_false(is.null(attr(fitw, "ild_data")))
   tbl <- tidy_ild_model(fitw)
   expect_s3_class(tbl, "tbl_df")
-  expect_named(tbl, c("term", "estimate", "std_error", "ci_low", "ci_high", "p_value"))
+  expect_true(all(ild_tidy_schema()$required %in% names(tbl)))
 })
 
 test_that("ild_ipw_refit errors when ar1 = TRUE", {

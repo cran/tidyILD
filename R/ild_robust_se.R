@@ -5,6 +5,12 @@
 #' via \code{se = "robust"} for fixed-effect inference. Requires
 #' \code{attr(fit, "ild_data")}; refit with [ild_lme()] if missing.
 #'
+#' For fits from [ild_ipw_refit()] with **estimated** IPW/IPCW weights, these SEs
+#' apply to the **weighted outcome (mixed) model** only; they do **not** incorporate
+#' first-stage uncertainty from the propensity/censoring models unless you treat
+#' weights as fixed. For MSM-style inference, prefer [ild_msm_bootstrap()] with an
+#' appropriate \code{weight_policy}; see [ild_msm_inference].
+#'
 #' @param fit A fitted model from [ild_lme()] (lmerMod or lme).
 #' @param type Character. Correction type: \code{"CR2"} (recommended), \code{"CR3"}, or \code{"CR0"}.
 #' @param cluster Either \code{"id"} (default; cluster by the ILD id column from
@@ -15,7 +21,8 @@
 #' @return A list with \code{vcov} (matrix), \code{type}, \code{cluster_name},
 #'   \code{engine} (\code{"lmer"} or \code{"lme"}), and optionally \code{message}
 #'   if a fallback was used (e.g. lme not fully supported on this build).
-#' @seealso [tidy_ild_model()] with \code{se = "robust"}, \code{clubSandwich::vcovCR}.
+#' @seealso [tidy_ild_model()] with \code{se = "robust"}, \code{clubSandwich::vcovCR},
+#'   [ild_msm_bootstrap()], [ild_msm_inference].
 #' @examples
 #' if (requireNamespace("clubSandwich", quietly = TRUE)) {
 #'   set.seed(1)

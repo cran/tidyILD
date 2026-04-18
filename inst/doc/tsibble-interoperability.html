@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="tidyILD authors" />
+
+<meta name="date" content="2026-04-17" />
+
+<title>Tsibble interoperability</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Tsibble interoperability</h1>
+<h4 class="author">tidyILD authors</h4>
+<h4 class="date">2026-04-17</h4>
+
+
+
+<p>The <a href="https://tsibble.tidyverts.org/"><strong>tsibble</strong></a>
+package represents tidy temporal data as <code>tbl_ts</code> objects
+with a declared <strong>key</strong> (e.g. subject) and
+<strong>index</strong> (time). <strong>tidyILD</strong> works on
+ordinary tibbles with provenance in attributes; when you start from a
+<code>tbl_ts</code>, <strong>tidyILD</strong> records formal tsibble
+semantics so you can <strong>inspect</strong> them and
+<strong>round-trip</strong> back to a tsibble where appropriate.</p>
+<p>This vignette requires the <strong>tsibble</strong> package
+(<code>install.packages(&quot;tsibble&quot;)</code>). Chunks below run only when
+<strong>tsibble</strong> is available.</p>
+<div id="ingesting-a-tsibble-with-ild_prepare" class="section level2">
+<h2>Ingesting a tsibble with <code>ild_prepare()</code></h2>
+<p>Pass a <strong><code>tbl_ts</code></strong> to
+<strong><code>ild_prepare()</code></strong> in either of these ways:</p>
+<ol style="list-style-type: decimal">
+<li><strong>Omit <code>id</code> and <code>time</code></strong> —
+tidyILD infers the subject column from the tsibble <strong>key</strong>
+(exactly <strong>one</strong> key column) and the time column from the
+<strong>index</strong>.</li>
+<li><strong>Supply <code>id</code> and <code>time</code></strong> —
+names must match the key and index columns; the input must still be a
+<strong><code>tbl_ts</code></strong>.</li>
+</ol>
+<p>The <strong><code>tbl_ts</code></strong> class is
+<strong>not</strong> kept on the result: the prepared object is a tibble
+with ILD structure (<code>.ild_*</code> columns, etc.). Tsibble-specific
+information is copied into the <strong>tidyILD</strong> attribute
+<strong>before</strong> coercion.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">suppressPackageStartupMessages</span>({</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>  <span class="fu">library</span>(tidyILD)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>  <span class="fu">library</span>(tsibble)</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>})</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>t <span class="ot">&lt;-</span> <span class="fu">seq.POSIXt</span>(<span class="fu">as.POSIXct</span>(<span class="st">&quot;2020-01-01&quot;</span>, <span class="at">tz =</span> <span class="st">&quot;UTC&quot;</span>), <span class="at">by =</span> <span class="st">&quot;hour&quot;</span>, <span class="at">length.out =</span> <span class="dv">4</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>d <span class="ot">&lt;-</span> <span class="fu">tsibble</span>(</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>  <span class="at">id =</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="dt">L</span>, <span class="dv">4</span>),</span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>  <span class="at">t =</span> t,</span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>  <span class="at">y =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>,</span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>  <span class="at">key =</span> id,</span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>  <span class="at">index =</span> t</span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>)</span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">ild_prepare</span>(d)</span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a><span class="fu">class</span>(x)</span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a><span class="co">#&gt; [1] &quot;tidyild_df&quot; &quot;ild_tbl&quot;    &quot;tbl_df&quot;     &quot;tbl&quot;        &quot;data.frame&quot;</span></span></code></pre></div>
+</div>
+<div id="what-provenance-is-kept" class="section level2">
+<h2>What provenance is kept</h2>
+<p>When the source was a <strong><code>tbl_ts</code></strong>, metadata
+is stored under
+<strong><code>attr(x, &quot;tidyILD&quot;)$tsibble</code></strong>. The exported
+reader is <strong><code>ild_tsibble_meta()</code></strong>, which
+returns <strong><code>NULL</code></strong> if the object was
+<strong>not</strong> prepared from a tsibble.</p>
+<p>Typical fields include:</p>
+<ul>
+<li><strong><code>key_vars</code></strong>,
+<strong><code>index_var</code></strong> — names of the subject and time
+columns.</li>
+<li><strong><code>interval_format</code></strong> — human-readable
+summary of the declared
+<strong><code>tsibble::interval()</code></strong> (when available).</li>
+<li><strong><code>is_regular</code></strong> — tsibble’s regularity flag
+at <strong>input</strong> time.</li>
+<li><strong><code>index_type</code></strong>,
+<strong><code>tsibble_version</code></strong>,
+<strong><code>source_class</code></strong> — for reporting and
+reproducibility.</li>
+</ul>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">str</span>(<span class="fu">ild_tsibble_meta</span>(x), <span class="at">max.level =</span> <span class="dv">1</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="co">#&gt; List of 7</span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt;  $ source_class   : chr &quot;tbl_ts&quot;</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt;  $ key_vars       : chr &quot;id&quot;</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt;  $ index_var      : chr &quot;t&quot;</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt;  $ interval_format: chr &quot;1h&quot;</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt;  $ is_regular     : logi TRUE</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt;  $ tsibble_version: chr &quot;1.2.0&quot;</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt;  $ index_type     : chr &quot;name&quot;</span></span></code></pre></div>
+<p><strong><code>ild_spacing()</code></strong> may include a
+<strong><code>tsibble</code></strong> sub-list that
+<strong>bridges</strong> the declared tsibble interval/regularity to
+<strong>empirical</strong> spacing computed from
+<strong><code>.ild_dt</code></strong> after
+<strong><code>ild_prepare()</code></strong> (sorting, duplicate
+handling, etc.). Declared and empirical summaries can
+<strong>diverge</strong> if rows change.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>sp <span class="ot">&lt;-</span> <span class="fu">ild_spacing</span>(x)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">names</span>(sp<span class="sc">$</span>tsibble)</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; NULL</span></span></code></pre></div>
+</div>
+<div id="how-to-inspect" class="section level2">
+<h2>How to inspect</h2>
+<ul>
+<li><strong><code>ild_tsibble_meta(x)</code></strong> — full tsibble
+provenance list (or <strong><code>NULL</code></strong>).</li>
+<li><strong><code>ild_summary(x)</code></strong> — when tsibble metadata
+exists, the summary includes a <strong><code>tsibble</code></strong>
+element (same content as
+<strong><code>ild_tsibble_meta()</code></strong>).</li>
+<li><strong><code>ild_spacing(x)$tsibble</code></strong> — declared vs
+empirical spacing bridge (when present).</li>
+</ul>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">names</span>(<span class="fu">ild_summary</span>(x))</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">#&gt; [1] &quot;summary&quot;    &quot;n_units&quot;    &quot;n_obs&quot;      &quot;time_range&quot; &quot;spacing&quot;   </span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt; [6] &quot;n_gaps&quot;     &quot;pct_gap&quot;    &quot;tsibble&quot;</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="fu">ild_summary</span>(x)<span class="sc">$</span>tsibble[<span class="fu">c</span>(<span class="st">&quot;key_vars&quot;</span>, <span class="st">&quot;index_var&quot;</span>, <span class="st">&quot;interval_format&quot;</span>, <span class="st">&quot;is_regular&quot;</span>)]</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt; $key_vars</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt; [1] &quot;id&quot;</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt; $index_var</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt; [1] &quot;t&quot;</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt; $interval_format</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt; [1] &quot;1h&quot;</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co">#&gt; $is_regular</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+</div>
+<div id="round-trip-with-ild_as_tsibble" class="section level2">
+<h2>Round-trip with <code>ild_as_tsibble()</code></h2>
+<p><strong><code>ild_as_tsibble(x)</code></strong> builds a
+<strong><code>tbl_ts</code></strong> from the prepared tibble using
+<strong><code>ild_meta()</code></strong> for key and index column names.
+If <strong><code>ild_tsibble_meta(x)</code></strong> is not
+<strong><code>NULL</code></strong>,
+<strong><code>regular</code></strong> is set from the stored
+<strong><code>is_regular</code></strong> so
+<strong><code>tsibble::interval()</code></strong> often <strong>matches
+the original</strong> for data that was <strong>unchanged</strong> after
+<strong><code>ild_prepare()</code></strong>.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>d2 <span class="ot">&lt;-</span> <span class="fu">ild_as_tsibble</span>(x)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>tsibble<span class="sc">::</span><span class="fu">interval</span>(d2)</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt; &lt;interval[1]&gt;</span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt; [1] 1h</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="fu">identical</span>(tsibble<span class="sc">::</span><span class="fu">interval</span>(d), tsibble<span class="sc">::</span><span class="fu">interval</span>(d2))</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>You can pass extra arguments through to
+<strong><code>tsibble::as_tsibble()</code></strong> (e.g. override
+<strong><code>regular</code></strong>).</p>
+</div>
+<div id="limitations-and-policy" class="section level2">
+<h2>Limitations and policy</h2>
+<ul>
+<li><strong>One-key policy:</strong>
+<strong><code>ild_prepare()</code></strong> accepts a
+<strong><code>tbl_ts</code></strong> with <strong>exactly one</strong>
+key column (the subject id). Multiple keys (e.g. country + person) are
+not supported; reshape or aggregate first.</li>
+<li><strong>Class is dropped:</strong> Output is not a
+<strong><code>tbl_ts</code></strong>; use
+<strong><code>ild_as_tsibble()</code></strong> when you need tsibble
+semantics again.</li>
+<li><strong>Pre- vs post-prepare divergence:</strong> Declared interval
+and regularity describe the <strong>input</strong>
+<strong><code>tbl_ts</code></strong>. After
+<strong><code>ild_prepare()</code></strong>, empirical spacing (gaps,
+irregularity) comes from <strong><code>.ild_dt</code></strong>. Sorting,
+duplicate removal, or row drops can make
+<strong><code>ild_as_tsibble()</code></strong>’s reconstruction
+<strong>not regular</strong> even when the source was; in that case a
+<strong>warning</strong> may be emitted when reconstructed regularity
+disagrees with stored provenance.</li>
+</ul>
+<p>For normative developer detail, see
+<strong><code>vignette(&quot;developer-contracts&quot;, package = &quot;tidyILD&quot;)</code></strong>
+and <strong><code>inst/dev/DEVELOPER_CONTRACTS.md</code></strong>
+(tsibble section). Related:
+<strong><code>vignette(&quot;ild-decomposition-and-spacing&quot;, package = &quot;tidyILD&quot;)</code></strong>
+for spacing tools.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

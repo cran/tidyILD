@@ -12,7 +12,7 @@
 
 <meta name="author" content="Alex Litovchenko" />
 
-<meta name="date" content="2026-03-06" />
+<meta name="date" content="2026-04-17" />
 
 <title>Short analysis report</title>
 
@@ -341,7 +341,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">Short analysis report</h1>
 <h4 class="author">Alex Litovchenko</h4>
-<h4 class="date">2026-03-06</h4>
+<h4 class="date">2026-04-17</h4>
 
 
 
@@ -363,21 +363,27 @@ Q-Q.</p>
 <div id="tidy-fixed-effects-table" class="section level2">
 <h2>2. Tidy fixed-effects table</h2>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">tidy_ild_model</span>(fit)</span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 6</span></span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt;   term        estimate std_error   ci_low  ci_high p_value</span></span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt;</span></span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt; 1 (Intercept) 9.93e-17  2.69e-17 4.65e-17 1.52e-16      NA</span></span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; 2 y_bp        1   e+ 0  2.72e-17 1   e+ 0 1   e+ 0      NA</span></span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt; 3 y_wp        1   e+ 0  5.29e-17 1   e+ 0 1   e+ 0      NA</span></span></code></pre></div>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 18</span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt;   term    component effect_level estimate std_error conf_low conf_high statistic</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;   &lt;chr&gt;     &lt;chr&gt;           &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt; 1 (Inter… fixed     population   9.93e-17  2.69e-17 4.65e-17  1.52e-16   3.69e 0</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; 2 y_bp    fixed     between      1   e+ 0  2.72e-17 1   e+ 0  1   e+ 0   3.68e16</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt; 3 y_wp    fixed     within       1   e+ 0  5.29e-17 1   e+ 0  1   e+ 0   1.89e16</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; # ℹ 10 more variables: p_value &lt;dbl&gt;, interval_type &lt;chr&gt;, engine &lt;chr&gt;,</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt; #   model_class &lt;chr&gt;, rhat &lt;dbl&gt;, ess_bulk &lt;dbl&gt;, ess_tail &lt;dbl&gt;, pd &lt;dbl&gt;,</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt; #   rope_low &lt;dbl&gt;, rope_high &lt;dbl&gt;</span></span></code></pre></div>
 <p>With cluster-robust standard errors (requires the
 <strong>clubSandwich</strong> package):</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">tidy_ild_model</span>(fit, <span class="at">se =</span> <span class="st">&quot;robust&quot;</span>, <span class="at">robust_type =</span> <span class="st">&quot;CR2&quot;</span>)</span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 6</span></span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt;   term        estimate std_error     ci_low  ci_high p_value</span></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;      &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt;</span></span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; 1 (Intercept) 9.93e-17  1.38e-16 -1.71 e-16 3.70e-16   0.472</span></span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; 2 y_bp        1   e+ 0  2.07e-16  1.000e+ 0 1   e+ 0   0    </span></span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; 3 y_wp        1   e+ 0  1.99e-17  1    e+ 0 1   e+ 0   0</span></span></code></pre></div>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 18</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt;   term  component effect_level estimate std_error   conf_low conf_high statistic</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt; &lt;chr&gt;     &lt;chr&gt;           &lt;dbl&gt;     &lt;dbl&gt;      &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; 1 (Int… fixed     population   9.93e-17  1.36e-16 -1.68 e-16  3.67e-16  7.28e- 1</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; 2 y_bp  fixed     between      1   e+ 0  2.01e-16  1.000e+ 0  1   e+ 0  4.97e+15</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; 3 y_wp  fixed     within       1   e+ 0  9.16e-18  1    e+ 0  1   e+ 0  1.09e+17</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; # ℹ 10 more variables: p_value &lt;dbl&gt;, interval_type &lt;chr&gt;, engine &lt;chr&gt;,</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; #   model_class &lt;chr&gt;, rhat &lt;dbl&gt;, ess_bulk &lt;dbl&gt;, ess_tail &lt;dbl&gt;, pd &lt;dbl&gt;,</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; #   rope_low &lt;dbl&gt;, rope_high &lt;dbl&gt;</span></span></code></pre></div>
 </div>
 <div id="fitted-vs-observed" class="section level2">
 <h2>3. Fitted vs observed</h2>

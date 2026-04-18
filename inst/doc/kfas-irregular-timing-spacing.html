@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Alex Litovchenko" />
+
+<meta name="date" content="2026-04-17" />
+
+<title>Irregular measurement and latent state tracking</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Irregular measurement and latent state
+tracking</h1>
+<h4 class="author">Alex Litovchenko</h4>
+<h4 class="date">2026-04-17</h4>
+
+
+
+<p><strong>Important:</strong> This vignette does <strong>not</strong>
+claim that <strong>KFAS</strong> in tidyILD “fixes” or removes the
+challenges of irregular measurement. <strong>tidyILD</strong> helps you
+<strong>measure and report</strong> timing structure (intervals, gaps,
+spacing class). <strong><code>ild_kfas()</code></strong> fits a
+<strong>discrete-time</strong> state-space model along
+<strong>observation order</strong>; it is <strong>not</strong> a drop-in
+substitute for <strong>continuous-time</strong> latent models
+(e.g. ctsem-like workflows). High irregularity can trigger a
+<strong>guardrail</strong>; continuous-time solutions are a
+<strong>later tier</strong>.</p>
+<div id="motivation" class="section level2">
+<h2>Motivation</h2>
+<p>Intensive longitudinal data (EMA, diaries, wearable prompts) often
+have <strong>irregular</strong> observation times: gaps, bursts, and
+varying intervals between measurements. <strong>tidyILD</strong> makes
+that structure visible and actionable <strong>before</strong> you choose
+a model:</p>
+<ul>
+<li><strong><code>ild_prepare()</code></strong> computes per-row
+intervals (e.g. <code>.ild_dt</code>) and respects
+<strong><code>gap_threshold</code></strong> for episode boundaries.</li>
+<li><strong><code>ild_summary()</code></strong> and
+<strong><code>ild_spacing()</code></strong> /
+<strong><code>ild_spacing_class()</code></strong> summarize interval
+variability and classify spacing as <strong>regular-ish</strong> vs
+<strong>irregular-ish</strong> (see
+<code>vignette(&quot;ild-decomposition-and-spacing&quot;, package = &quot;tidyILD&quot;)</code>).</li>
+<li><strong><code>ild_design_check()</code></strong> aggregates spacing
+and design summaries for reporting.</li>
+</ul>
+<p>Those tools support <strong>mixed models</strong> (e.g. choosing AR1
+vs CAR1 for residual correlation in <code>ild_lme()</code>) and
+<strong>transparent reporting</strong> of how timing was handled.
+<strong>KFAS</strong> in tidyILD adds another branch: <strong>latent
+state</strong> tracking for a <strong>single</strong> series—but the
+same spacing diagnostics still describe <strong>whether</strong> the
+timing pattern matches the <strong>assumptions</strong> of the
+state-space fit you use.</p>
+</div>
+<div id="what-ild_kfas-assumes-today" class="section level2">
+<h2>What <code>ild_kfas()</code> assumes today</h2>
+<p>The <strong>KFAS</strong> backend in tidyILD fits models on a
+<strong>discrete time index</strong>: observations are ordered after
+<code>ild_prepare()</code>, and the state evolves <strong>one step per
+row</strong> for that series. It does <strong>not</strong> implement a
+<strong>continuous-time</strong> Kalman filter with unequal physical
+intervals built into the transition matrix (that design space points
+elsewhere, e.g. specialized continuous-time software—see
+<code>inst/dev/KFAS_V1_BACKEND.md</code>).</p>
+<p>So:</p>
+<ul>
+<li><strong>Irregular calendar timing</strong> is still reflected in
+<strong>ILD</strong> metadata (intervals, spacing class, gaps).</li>
+<li>The <strong>state-space</strong> fit itself is
+<strong>discrete-time</strong> along the <strong>observation
+order</strong> unless and until the backend gains explicit
+continuous-time support.</li>
+</ul>
+<p>Use spacing outputs to <strong>document</strong> irregularity and to
+<strong>interpret</strong> results cautiously when intervals vary
+wildly: a local-level model on the observation index is not the same as
+a model that correctly weights by elapsed time in continuous time.</p>
+</div>
+<div id="irregular_time-and-guardrails" class="section level2">
+<h2><code>irregular_time</code> and guardrails</h2>
+<p><code>ild_kfas(..., irregular_time = TRUE)</code>
+<strong>suppresses</strong> the default warning when spacing looks
+highly irregular relative to a discrete-time local-level assumption. It
+does <strong>not</strong> turn the model into a continuous-time model;
+it acknowledges that you have read the spacing diagnostics and accept
+the discrete-time framing (or a deliberate approximation).</p>
+<p>After fitting, <strong><code>ild_diagnose()</code></strong> may
+attach <strong>KFAS-specific guardrails</strong>, including
+<strong><code>GR_KFAS_HIGH_IRREGULARITY_FOR_DISCRETE_TIME</code></strong>
+when the design is <strong>irregular-ish</strong> but the fit remains
+discrete-time. That rule is a <strong>design-space bridge</strong>: it
+connects <strong>spacing classification</strong> to
+<strong>state-space</strong> workflow without claiming to fix
+misspecification.</p>
+<p>Browse rule definitions with <code>guardrail_registry()</code> and
+inspect triggered rows in <code>ild_diagnose(fit)$guardrails</code>.</p>
+</div>
+<div id="workflow-sketch" class="section level2">
+<h2>Workflow sketch</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(tidyILD)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">3</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>d <span class="ot">&lt;-</span> <span class="fu">ild_simulate</span>(<span class="at">n_id =</span> <span class="dv">1</span>, <span class="at">n_obs_per =</span> <span class="dv">50</span>, <span class="at">irregular =</span> <span class="cn">TRUE</span>, <span class="at">seed =</span> <span class="dv">11</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">ild_prepare</span>(d, <span class="at">id =</span> <span class="st">&quot;id&quot;</span>, <span class="at">time =</span> <span class="st">&quot;time&quot;</span>, <span class="at">gap_threshold =</span> <span class="dv">7200</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="fu">ild_summary</span>(x)<span class="sc">$</span>summary</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="co">#&gt; # A tibble: 1 × 7</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co">#&gt;    n_id n_obs time_min time_max prop_gap median_dt_sec iqr_dt_sec</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="co">#&gt;   &lt;int&gt; &lt;int&gt;    &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;         &lt;dbl&gt;      &lt;dbl&gt;</span></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a><span class="co">#&gt; 1     1    50        0  176801.        0         3561.       579.</span></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a><span class="fu">ild_spacing_class</span>(x)</span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a><span class="co">#&gt; [1] &quot;regular-ish&quot;</span></span></code></pre></div>
+<p>If <strong>KFAS</strong> is installed, you can fit with explicit
+acknowledgment of irregular spacing:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">suppressWarnings</span>(</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>  <span class="fu">ild_kfas</span>(</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>    x,</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>    <span class="at">outcome =</span> <span class="st">&quot;y&quot;</span>,</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>    <span class="at">state_spec =</span> <span class="st">&quot;local_level&quot;</span>,</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>    <span class="at">time_units =</span> <span class="st">&quot;seconds&quot;</span>,</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>    <span class="at">irregular_time =</span> <span class="cn">TRUE</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>  )</span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>)</span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>diag <span class="ot">&lt;-</span> <span class="fu">ild_diagnose</span>(fit)</span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co"># When spacing is irregular-ish and IQR/median interval ratio &gt; 0.75, expect</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co"># GR_KFAS_HIGH_IRREGULARITY_FOR_DISCRETE_TIME among triggered guardrails:</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>diag<span class="sc">$</span>guardrails[, <span class="fu">c</span>(<span class="st">&quot;rule_id&quot;</span>, <span class="st">&quot;message&quot;</span>)]</span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt; # A tibble: 0 × 2</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt; # ℹ 2 variables: rule_id &lt;chr&gt;, message &lt;chr&gt;</span></span></code></pre></div>
+<p>If <strong>KFAS</strong> is not installed, install the
+<strong>KFAS</strong> package to run the chunk above.</p>
+</div>
+<div id="where-to-go-next" class="section level2">
+<h2>Where to go next</h2>
+<ul>
+<li><code>vignette(&quot;kfas-state-space-modeling&quot;, package = &quot;tidyILD&quot;)</code>
+— state-space concepts and <strong>filtered vs smoothed</strong>
+states.</li>
+<li><code>vignette(&quot;kfas-choosing-backend&quot;, package = &quot;tidyILD&quot;)</code>
+— when to use <strong>lme/nlme</strong>, <strong>brms</strong>, or
+<strong>KFAS</strong>.</li>
+</ul>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

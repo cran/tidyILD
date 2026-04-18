@@ -4,12 +4,14 @@
 \alias{ild_heatmap}
 \title{ILD heatmap (alias for ild_plot with type = "heatmap")}
 \usage{
-ild_heatmap(x, var = NULL, ...)
+ild_heatmap(x, var = NULL, facet_by = NULL, ...)
 }
 \arguments{
 \item{x}{ILD object or fitted model (for heatmap, data are taken from ild_data if model).}
 
 \item{var}{Variable to plot. If NULL, single data column is used.}
+
+\item{facet_by}{Optional column in ILD for [ggplot2::facet_wrap()].}
 
 \item{...}{Passed to [ild_plot()] (e.g. id_var, time_var).}
 }

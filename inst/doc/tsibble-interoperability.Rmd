@@ -1,0 +1,103 @@
+---
+title: "Tsibble interoperability"
+author: "tidyILD authors"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Tsibble interoperability}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 4
+)
+has_tsibble <- requireNamespace("tsibble", quietly = TRUE)
+```
+
+The [**tsibble**](https://tsibble.tidyverts.org/) package represents tidy temporal data as `tbl_ts` objects with a declared **key** (e.g. subject) and **index** (time). **tidyILD** works on ordinary tibbles with provenance in attributes; when you start from a `tbl_ts`, **tidyILD** records formal tsibble semantics so you can **inspect** them and **round-trip** back to a tsibble where appropriate.
+
+This vignette requires the **tsibble** package (`install.packages("tsibble")`). Chunks below run only when **tsibble** is available.
+
+## Ingesting a tsibble with `ild_prepare()`
+
+Pass a **`tbl_ts`** to **`ild_prepare()`** in either of these ways:
+
+1. **Omit `id` and `time`** — tidyILD infers the subject column from the tsibble **key** (exactly **one** key column) and the time column from the **index**.
+2. **Supply `id` and `time`** — names must match the key and index columns; the input must still be a **`tbl_ts`**.
+
+The **`tbl_ts`** class is **not** kept on the result: the prepared object is a tibble with ILD structure (`.ild_*` columns, etc.). Tsibble-specific information is copied into the **tidyILD** attribute **before** coercion.
+
+```{r ingest, eval = has_tsibble}
+suppressPackageStartupMessages({
+  library(tidyILD)
+  library(tsibble)
+})
+t <- seq.POSIXt(as.POSIXct("2020-01-01", tz = "UTC"), by = "hour", length.out = 4)
+d <- tsibble(
+  id = rep(1L, 4),
+  t = t,
+  y = 1:4,
+  key = id,
+  index = t
+)
+x <- ild_prepare(d)
+class(x)
+```
+
+## What provenance is kept
+
+When the source was a **`tbl_ts`**, metadata is stored under **`attr(x, "tidyILD")$tsibble`**. The exported reader is **`ild_tsibble_meta()`**, which returns **`NULL`** if the object was **not** prepared from a tsibble.
+
+Typical fields include:
+
+- **`key_vars`**, **`index_var`** — names of the subject and time columns.
+- **`interval_format`** — human-readable summary of the declared **`tsibble::interval()`** (when available).
+- **`is_regular`** — tsibble’s regularity flag at **input** time.
+- **`index_type`**, **`tsibble_version`**, **`source_class`** — for reporting and reproducibility.
+
+```{r meta, eval = has_tsibble}
+str(ild_tsibble_meta(x), max.level = 1)
+```
+
+**`ild_spacing()`** may include a **`tsibble`** sub-list that **bridges** the declared tsibble interval/regularity to **empirical** spacing computed from **`.ild_dt`** after **`ild_prepare()`** (sorting, duplicate handling, etc.). Declared and empirical summaries can **diverge** if rows change.
+
+```{r spacing-bridge, eval = has_tsibble}
+sp <- ild_spacing(x)
+names(sp$tsibble)
+```
+
+## How to inspect
+
+- **`ild_tsibble_meta(x)`** — full tsibble provenance list (or **`NULL`**).
+- **`ild_summary(x)`** — when tsibble metadata exists, the summary includes a **`tsibble`** element (same content as **`ild_tsibble_meta()`**).
+- **`ild_spacing(x)$tsibble`** — declared vs empirical spacing bridge (when present).
+
+```{r summary-ts, eval = has_tsibble}
+names(ild_summary(x))
+ild_summary(x)$tsibble[c("key_vars", "index_var", "interval_format", "is_regular")]
+```
+
+## Round-trip with `ild_as_tsibble()`
+
+**`ild_as_tsibble(x)`** builds a **`tbl_ts`** from the prepared tibble using **`ild_meta()`** for key and index column names. If **`ild_tsibble_meta(x)`** is not **`NULL`**, **`regular`** is set from the stored **`is_regular`** so **`tsibble::interval()`** often **matches the original** for data that was **unchanged** after **`ild_prepare()`**.
+
+```{r roundtrip, eval = has_tsibble}
+d2 <- ild_as_tsibble(x)
+tsibble::interval(d2)
+identical(tsibble::interval(d), tsibble::interval(d2))
+```
+
+You can pass extra arguments through to **`tsibble::as_tsibble()`** (e.g. override **`regular`**).
+
+## Limitations and policy
+
+- **One-key policy:** **`ild_prepare()`** accepts a **`tbl_ts`** with **exactly one** key column (the subject id). Multiple keys (e.g. country + person) are not supported; reshape or aggregate first.
+- **Class is dropped:** Output is not a **`tbl_ts`**; use **`ild_as_tsibble()`** when you need tsibble semantics again.
+- **Pre- vs post-prepare divergence:** Declared interval and regularity describe the **input** **`tbl_ts`**. After **`ild_prepare()`**, empirical spacing (gaps, irregularity) comes from **`.ild_dt`**. Sorting, duplicate removal, or row drops can make **`ild_as_tsibble()`**’s reconstruction **not regular** even when the source was; in that case a **warning** may be emitted when reconstructed regularity disagrees with stored provenance.
+
+For normative developer detail, see **`vignette("developer-contracts", package = "tidyILD")`** and **`inst/dev/DEVELOPER_CONTRACTS.md`** (tsibble section). Related: **`vignette("ild-decomposition-and-spacing", package = "tidyILD")`** for spacing tools.

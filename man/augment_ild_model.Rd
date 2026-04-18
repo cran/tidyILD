@@ -12,13 +12,14 @@ augment_ild_model(fit, ...)
 \item{...}{Unused.}
 }
 \value{
-A tibble with columns \code{.ild_id}, \code{.ild_time}, the response
-  (name from formula), \code{.fitted}, \code{.resid}.
+A tibble; see \code{\link{ild_augment_schema}}.
 }
 \description{
-Returns a tibble with one row per observation: \code{.ild_id}, \code{.ild_time},
-the response variable (column name from the model formula, e.g. \code{y}),
-\code{.fitted}, and \code{.resid}. This structure is used internally by
-[ild_diagnostics()] and [ild_plot()]. Requires \code{attr(fit, "ild_data")};
-refit with [ild_lme()] if missing. Random effects predictions can be added later.
+Returns a tibble conforming to \code{\link{ild_augment_schema}}: \code{.ild_id},
+\code{.ild_time}, \code{.outcome}, \code{.fitted}, \code{.resid}, \code{.resid_std},
+\code{engine}, \code{model_class}, plus optional columns (see schema).
+\code{.resid_std} is Pearson-type when \code{residuals(fit, type = "pearson")} is
+available and length-matched; otherwise \code{NA} (principled but sparse).
+Used internally by [ild_diagnostics()] and [ild_plot()]. Requires
+\code{attr(fit, "ild_data")}; refit with [ild_lme()] if missing.
 }

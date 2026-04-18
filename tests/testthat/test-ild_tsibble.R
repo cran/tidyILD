@@ -1,0 +1,21 @@
+test_that("ild_as_tsibble round-trips key and index", {
+  skip_if_not_installed("tsibble")
+  d <- ild_simulate(n_id = 4, n_obs_per = 5, seed = 11)
+  x <- ild_prepare(d, id = "id", time = "time")
+  ts <- ild_as_tsibble(x)
+  expect_true(inherits(ts, "tbl_ts"))
+  expect_equal(tsibble::key_vars(ts), "id")
+  expect_equal(tsibble::index_var(ts), "time")
+})
+
+test_that("ild_prepare infers id and time from tbl_ts", {
+  skip_if_not_installed("tsibble")
+  d <- ild_simulate(n_id = 3, n_obs_per = 4, seed = 12)
+  x0 <- ild_prepare(d, id = "id", time = "time")
+  ts <- ild_as_tsibble(x0)
+  x1 <- ild_prepare(ts)
+  expect_true(is_ild(x1))
+  expect_equal(attr(x1, "ild_id", exact = TRUE), "id")
+  expect_equal(attr(x1, "ild_time", exact = TRUE), "time")
+  expect_equal(nrow(x0), nrow(x1))
+})

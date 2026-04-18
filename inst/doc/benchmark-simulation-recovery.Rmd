@@ -1,0 +1,166 @@
+---
+title: "Simulation benchmarks: recovery and power"
+author: "tidyILD authors"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Simulation benchmarks: recovery and power}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 4
+)
+# Optional: set `cache = TRUE` on slow chunks when developing locally (see chunks below).
+```
+
+This article shows how to use **`ild_simulate()`** and **`ild_power(..., return_sims = TRUE)`** to assess **parameter recovery** for a fixed effect under the package’s bundled Gaussian mixed-model simulation setup, and how that connects to **empirical power**. It is an **illustrative benchmark** for that DGP—not a proof that every tidyILD method is validated for all data.
+
+**Power** answers: “How often do we reject the null when the effect is present?” **Recovery** answers: “How close are point estimates (and intervals) to the known coefficient across repeated simulations?” Both use the same replication loop inside **`ild_power()`**.
+
+## Simulation size and precision
+
+Recovery summaries (**bias**, **RMSE**, **coverage**) are **Monte Carlo estimates**: their sampling variability shrinks as **`n_sim`** increases (roughly \(\propto 1/\sqrt{n_\text{sim}}\) for means). The worked example below uses **`n_sim = 200`** as a balance between stability and build time on **CRAN**; for publication-style tables, consider larger **`n_sim`** and reporting uncertainty (e.g. bootstrap across replications or analytical approximations where available). Chunks that re-run **`ild_power()`** are marked with optional **`cache = TRUE`** so local rebuilds can skip re-simulation when the code is unchanged (not used on CRAN by default).
+
+## What `ild_simulate()` encodes
+
+The base outcome **`y`** (before `ild_power()` adds a predictor) is built as follows:
+
+- **Between-person**: independent random intercepts per `id` (scale **`bp_effect`**).
+- **Within-person**: optional AR(1) structure on de-trended within-person series when **`ar1`** is set (numeric \(\phi\)); otherwise i.i.d. Gaussian noise (scale **`wp_effect`**).
+- **Time**: a mild linear-in-time component plus **`time`** as `POSIXct` from a regular grid (with optional jitter if **`irregular = TRUE`**).
+
+The formula you fit should match this structure (e.g. random intercept for `id` when using **`ild_lme(..., ar1 = FALSE)`**). Recovery in this vignette focuses on a **single fixed effect** added by **`ild_power()`** on top of that DGP (see below).
+
+## Fixed-effect recovery with `ild_power(..., return_sims = TRUE)`
+
+For each replication, **`ild_power()`**:
+
+1. Simulates data with **`ild_simulate()`**.
+2. Adds a standard normal predictor **`x`** and sets **`y <- y + effect_size * x`** so the **true** coefficient of **`x`** is **`effect_size`** (call it β).
+3. Runs **`ild_prepare()`** and **`ild_lme()`** with your formula.
+4. Records the Wald-based estimate and standard error for the test term.
+
+With **`return_sims = TRUE`**, you get a tibble of per-replication **`estimate`**, **`std_error`**, **`p_value`**, and **`converged`**. Use **`ild_recovery_metrics()`** for **bias**, **RMSE**, and **nominal Wald interval coverage** (normal approximation \(\hat\beta \pm z_{1-\alpha/2} \cdot \mathrm{SE}\)), consistent with the manual calculation shown in earlier package versions.
+
+```{r recovery-run, cache = FALSE}
+library(tidyILD)
+library(dplyr)
+library(ggplot2)
+
+truth <- 0.35
+n_sim <- 200L
+
+set.seed(2026)
+res <- ild_power(
+  formula = y ~ x + (1 | id),
+  n_sim = n_sim,
+  n_id = 25L,
+  n_obs_per = 12L,
+  effect_size = truth,
+  seed = 2026L,
+  return_sims = TRUE,
+  verbose = FALSE
+)
+
+sim <- res$sim_results |> dplyr::filter(converged)
+```
+
+```{r recovery-metrics}
+ild_recovery_metrics(res$sim_results, truth = truth, level = 0.95)
+```
+
+Across replications, the mean estimate should be near **β**, bias near 0, RMSE positive but modest if the model is well specified, and **coverage** near the nominal level (e.g. 0.95) for large **`n_sim`**—subject to Monte Carlo noise when **`n_sim`** is moderate.
+
+```{r recovery-plot, fig.alt = "Histogram of simulation estimates of the fixed effect", cache = FALSE}
+ggplot2::ggplot(sim, ggplot2::aes(x = estimate)) +
+  ggplot2::geom_histogram(fill = "steelblue", color = "white", bins = 20) +
+  ggplot2::geom_vline(xintercept = truth, linetype = 2, linewidth = 0.8) +
+  ggplot2::labs(
+    x = "Estimated coefficient for x",
+    y = "Count",
+    title = "Sampling distribution of fixed-effect estimates",
+    subtitle = sprintf("True beta = %s (vertical line)", truth)
+  )
+```
+
+## From recovery to power
+
+The same object **`res`** already contains **empirical power**: the fraction of converged runs with **`p_value < alpha`**.
+
+```{r power-link}
+tibble::tibble(
+  power = res$power,
+  n_reject = res$n_reject,
+  n_converged = res$n_converged,
+  alpha = res$alpha
+)
+```
+
+**Interpretation:** **Recovery** summarizes the **sampling distribution** of \(\hat\beta\). **Power** summarizes how often that distribution leads to rejection at **`alpha`**. A large effect with low variance yields good recovery *and* high power; a small effect may show acceptable recovery (unbiased estimates) but low power at a fixed sample size.
+
+## Variance components (illustrative snapshot)
+
+**`ild_power()`** is built around a **fixed-effect** estimand. Recovery of **variance components** (random-intercept SD, residual variance) is a separate question. As a **single-run sanity check**, you can inspect **`VarCorr()`** on one simulated dataset ( **`lme4`** or **`nlme`** output depending on **`ar1`**):
+
+```{r varcorr-snapshot, eval = requireNamespace("lme4", quietly = TRUE)}
+set.seed(1)
+d_one <- ild_simulate(n_id = 30L, n_obs_per = 15L, seed = 99)
+d_one$x <- rnorm(nrow(d_one))
+d_one$y <- d_one$y + 0.3 * d_one$x
+prep_one <- ild_prepare(d_one, id = "id", time = "time")
+fit_one <- ild_lme(y ~ x + (1 | id), prep_one, ar1 = FALSE, warn_no_ar1 = FALSE)
+lme4::VarCorr(fit_one)
+```
+
+This is **not** a simulation-based assessment of variance recovery—only a template for where to look when extending benchmarks.
+
+## AR(1) in the DGP vs residual correlation in the fit
+
+- **`ild_simulate(..., ar1 = phi)`** (numeric \(\phi\)) injects **AR(1) within-person** correlation in the **outcome** before **`ild_power()`** adds **`x`**.
+- **`ild_lme(..., ar1 = TRUE)`** fits a **residual** AR1/CAR1 structure in **`nlme`** (different object from the DGP’s \(\phi\)); when **`ar1 = TRUE`**, the formula must be **fixed-effects-only** with **`random = ~ 1 | id`** (see **`?ild_lme`**).
+
+**`ild_power()`** exposes **`ar1`** as a **logical** flag for the **fit**, not the DGP’s \(\phi\). To study AR(1) DGPs with **`ild_power()`**, you would need a **custom loop** calling **`ild_simulate(..., ar1 = ...)`** yourself, or prioritize alignment by matching structures in both steps. Minimal illustration of **DGP AR + nlme residual correlation** on one draw:
+
+```{r ar1-illustration, eval = requireNamespace("nlme", quietly = TRUE)}
+set.seed(2)
+d_ar <- ild_simulate(n_id = 20L, n_obs_per = 14L, ar1 = 0.35, wp_effect = 0.5, seed = 2)
+d_ar$x <- rnorm(nrow(d_ar))
+d_ar$y <- d_ar$y + 0.25 * d_ar$x
+prep_ar <- ild_prepare(d_ar, id = "id", time = "time")
+fit_ar <- tryCatch(
+  ild_lme(y ~ x, prep_ar, ar1 = TRUE, random = ~ 1 | id, warn_no_ar1 = FALSE),
+  error = function(e) NULL
+)
+if (!is.null(fit_ar)) summary(fit_ar) else "nlme fit failed on this platform (skip)"
+```
+
+## Bayesian and state-space extensions
+
+- **`ild_power()`** currently drives **`ild_lme()`** only. For **brms** / Stan, use **`ild_simulate()`** + **`ild_fit(..., backend = "brms")`** (or **`ild_brms()`**) in your own replication loop, then summarize posterior intervals against **`truth`** with the same **coverage** idea (credible vs Wald nominal coverage is **not** interchangeable—document which you use).
+- **KFAS** targets **state-space** models; see **`vignette("kfas-state-space-modeling", package = "tidyILD")`** and **`?ild_kfas`**. Cross-checking mixed-model simulation benchmarks against KFAS is out of scope here but natural for method comparison papers.
+
+## Cross-backend validation harness (optional)
+
+For **repeatable CI-style checks** across several engines (`lme4`, optional `nlme` / `brms` / **KFAS** / **ctsem**), the package ships a **non-exported** harness documented in **`inst/dev/BACKEND_VALIDATION_BENCHMARK_CONTRACT.md`**. From a **source tree**, run `scripts/run-backend-validation-benchmarks.R` with a **`--tier`** (`smoke`, `nightly`, `full`) and compare outputs to JSON thresholds via `scripts/check-backend-validation-thresholds.R`. This complements the **`ild_power()`** / **`ild_recovery_metrics()`** workflow above by standardizing **raw and summary tables** for trend comparison; it is **not** a substitute for study-specific simulation design.
+
+## Limitations and scope
+
+- **One estimand in `ild_power()`**: this path targets a **single fixed effect** in a linear mixed model fit with **`ild_lme()`**, matching the current **`ild_power()`** implementation.
+- **Inference**: for **`lme4`** fits, **`ild_power()`** uses a **Wald z-approximation** when **p-values** are unavailable from the engine; that is appropriate for this illustration but not identical to likelihood-ratio tests.
+- **Variance / AR / other backends**: recovery of **variance components** and **AR** parameters, **brms**, and **KFAS** are discussed **above**; full simulation suites for those paths are left to application-specific code.
+
+## See also
+
+- **`vignette("tidyILD-workflow", package = "tidyILD")`** — end-to-end pipeline.
+- **`?ild_power`**, **`?ild_recovery_metrics`** — simulation-based power and recovery summaries.
+- **`?ild_simulate`** — base data generator.
+
+```{r session-info, echo = FALSE}
+sessionInfo()
+```

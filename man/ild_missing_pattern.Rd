@@ -4,7 +4,14 @@
 \alias{ild_missing_pattern}
 \title{Summarize missingness pattern in ILD}
 \usage{
-ild_missing_pattern(x, vars = NULL, max_ids = NULL, seed = NULL)
+ild_missing_pattern(
+  x,
+  vars = NULL,
+  max_ids = NULL,
+  seed = NULL,
+  outcome = NULL,
+  expected_occasions = NULL
+)
 }
 \arguments{
 \item{x}{An ILD object (see [is_ild()]).}
@@ -16,11 +23,17 @@ If \code{NULL}, all non-.ild_* data columns are used.}
 before computing \code{by_id}, \code{summary}, and \code{plot} to handle large N.}
 
 \item{seed}{Optional integer. Seed for sampling when \code{max_ids} is set.}
+
+\item{outcome}{Optional character; if set, \code{by_id} is left-joined with
+[ild_missing_compliance()] for that column (interpretable adherence metrics).}
+
+\item{expected_occasions}{Passed to [ild_missing_compliance()] when \code{outcome} is set.}
 }
 \value{
 A list with: \code{summary} (tibble: one row per var, columns var, n_obs, n_na, pct_na),
   \code{plot} (ggplot2 object for missingness heatmap), \code{by_id}, \code{overall},
-  \code{n_complete}, \code{vars}.
+  \code{n_complete}, \code{vars}. When \code{outcome} is set, \code{by_id} includes
+  compliance columns (see [ild_missing_compliance()]).
 }
 \description{
 Returns a tabular summary of missingness by person and/or by variable,
@@ -28,3 +41,29 @@ plus an optional heatmap plot. Complements [ild_summary()] and supports
 checking data before modeling. When \code{vars = NULL}, all non-internal
 data columns are used (observation presence across variables).
 }
+\details{
+Also a **section provider** for [ild_diagnose()] (see [ild_diagnostics_utilities]).
+}
+\section{Bundle integration}{
+
+[ild_diagnose()] passes summaries into \code{data$missing_pattern} (global) and
+\code{missingness} (model variables) on the \code{\link{ild_diagnostics_bundle}}.
+}
+
+\seealso{
+[ild_diagnose()], [ild_diagnostics_bundle()]
+
+Other ild_diagnostics_utilities: 
+\code{\link{ild_design_check}()},
+\code{\link{ild_ipcw_weights}()},
+\code{\link{ild_iptw_msm_weights}()},
+\code{\link{ild_iptw_weights}()},
+\code{\link{ild_ipw_weights}()},
+\code{\link{ild_joint_msm_weights}()},
+\code{\link{ild_missing_cohort}()},
+\code{\link{ild_missing_compliance}()},
+\code{\link{ild_missing_hazard_first}()},
+\code{\link{ild_missing_model}()},
+\code{\link{ild_missingness_report}()}
+}
+\concept{ild_diagnostics_utilities}

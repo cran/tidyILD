@@ -16,7 +16,7 @@ ild_report(fit, export_provenance_path = NULL, robust_se = NULL, ...)
 \item{...}{Unused.}
 }
 \value{
-A list with a stable schema: \code{meta} (list with \code{n_obs}, \code{n_id}, \code{engine} when available), \code{methods}, \code{model_table}, \code{diagnostics_summary}, \code{provenance}, \code{provenance_export_path} (character or NULL).
+A list with a stable schema: \code{meta} (list with \code{n_obs}, \code{n_id}, \code{engine} when available), \code{methods}, \code{model_table}, \code{diagnostics_summary} (includes \code{guardrails_narrative} and \code{guardrails} when [ild_diagnose()] succeeds), \code{provenance}, \code{provenance_export_path} (character or NULL). When guardrails are triggered, \code{methods_with_guardrails} repeats the methods paragraph with guardrails appended (same pattern as \code{\link{ild_methods}(fit, bundle = d)}).
 }
 \description{
 Builds a structured list with methods narrative (from [ild_methods()]),

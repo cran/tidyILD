@@ -5,6 +5,13 @@
 #' design summary. Use before modeling to see spacing class, correlation
 #' recommendation, within- vs between-person variance, and missingness.
 #'
+#' Also a **section provider** for [ild_diagnose()] (see [ild_diagnostics_utilities]).
+#'
+#' @section Bundle integration:
+#' [ild_diagnose()] embeds this object in \code{design$ild_design_check} on the
+#' \code{\link{ild_diagnostics_bundle}}.
+#'
+#' @family ild_diagnostics_utilities
 #' @param x An ILD object (see [is_ild()]).
 #' @param vars Optional character vector of variable names for decomposition
 #'   and missingness. If \code{NULL}, only spacing and summary are computed;
@@ -14,6 +21,7 @@
 #'   \code{recommendation} (AR1/CAR1 text), \code{wp_bp} (decomposition tibble or NULL),
 #'   \code{missingness} (list with \code{summary} tibble and \code{pct_na} overall, or NULL).
 #'   Use \code{print()} for a human-readable summary.
+#' @seealso [ild_diagnose()], [ild_diagnostics_bundle()]
 #' @export
 #' @examples
 #' d <- ild_simulate(n_id = 10, n_obs_per = 8, irregular = TRUE, seed = 1)

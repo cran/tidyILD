@@ -1,0 +1,84 @@
+---
+title: "Heterogeneity and person-specific effects"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Heterogeneity and person-specific effects}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Estimands: population, partial pooling, and no pooling
+
+Mixed models estimate **population** fixed effects and **variance components** for random effects.
+Person-specific quantities are usually summarized by **conditional modes** (empirical Bayes / BLUPs in `lme4`):
+
+- **`ranef(fit)`**: deviations from the population mean.
+- **`coef(fit)`**: person-specific coefficients (population + deviation), i.e. partial pooling.
+
+These are **not** the same as fitting a separate regression in each person (**no pooling**), which
+`ild_person_model()` implements for teaching and idiographic workflows. No-pooling estimates do not
+shrink and can be very unstable with few observations per person.
+
+Bayesian fits from `ild_brms()` report person-specific summaries via posterior distributions;
+`ild_heterogeneity()` reads `coef(fit, summary = TRUE)` for posterior means and intervals.
+
+## `ild_heterogeneity()`
+
+After `ild_lme()` or `ild_brms()` with random effects, use:
+
+```{r eval = requireNamespace("lme4", quietly = TRUE)}
+library(tidyILD)
+d <- ild_simulate(n_id = 20, n_obs_per = 10, seed = 7)
+x <- ild_prepare(d, id = "id", time = "time")
+x <- ild_center(x, y)
+fit <- ild_lme(y ~ y_wp + y_bp + (1 | id), data = x)
+h <- ild_heterogeneity(fit)
+print(h$summary)
+head(ild_tidy(h))
+```
+
+The `$summary` table includes the proportion of person-specific **total** coefficients greater than zero,
+quantiles, and (for `lmer`) joins `VarCorr` standard deviations when names align.
+
+Optional `threshold` and `scale = c("raw", "sd_x", "sd_y")` define substantively motivated cutoffs for
+the proportion exceeding a threshold (e.g. a fraction of the SD of $x$ or $y$).
+
+## Diagnostics bundle and plots
+
+`ild_diagnose()` stores `fit$heterogeneity` when extraction succeeds. Plot with:
+
+```{r eval = FALSE}
+ild_autoplot(bundle, section = "fit", type = "heterogeneity", term = "y_wp")
+```
+
+Use `heterogeneity_type = "histogram"` in addition if you prefer a histogram (passed as `...`).
+
+Guardrails **`GR_RE_SLOPE_VARIANCE_VERSUS_RESIDUAL_LOW`** and **`GR_PERSON_SPECIFIC_SLOPES_EMPIRICALLY_TIGHT`**
+flag cases where estimated slope heterogeneity is small relative to residual noise (heuristic interpretation aids).
+
+## Stratified descriptive comparison
+
+`ild_heterogeneity_stratified()` refits the same formula within levels of a grouping column and binds
+per-subgroup summaries. This is a **descriptive** tool, not a formal test of differences in variance
+components; use with adequate $N$ per subgroup (`min_n_id`).
+
+```{r eval = FALSE}
+ild_heterogeneity_stratified(
+  y ~ y_wp + (y_wp | id),
+  data = x,
+  subgroup = "cohort",
+  min_n_id = 8L
+)
+```
+
+## See also
+
+`vignette("developer-contracts", package = "tidyILD")` documents the optional `fit$heterogeneity` slot
+on `ild_diagnostics_bundle`.

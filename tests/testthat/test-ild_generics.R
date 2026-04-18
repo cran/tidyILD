@@ -1,0 +1,48 @@
+test_that("ild_fit lme4 path matches ild_lme ar1=FALSE", {
+  d <- ild_simulate(n_id = 5, n_obs_per = 6, seed = 1)
+  x <- ild_prepare(d, id = "id", time = "time")
+  x <- ild_center(x, y)
+  f <- ild_fit(y ~ y_bp + y_wp + (1 | id), data = x, backend = "lme4", warn_no_ar1 = FALSE)
+  g <- ild_lme(y ~ y_bp + y_wp + (1 | id), data = x, ar1 = FALSE, warn_no_ar1 = FALSE)
+  expect_equal(lme4::fixef(f), lme4::fixef(g))
+  prov <- attr(f, "ild_provenance", exact = TRUE)
+  last_args <- prov$analysis_steps[[length(prov$analysis_steps)]]$args
+  expect_equal(last_args$backend, "lme4")
+})
+
+test_that("ild_tidy and ild_augment dispatch to tidiers", {
+  d <- ild_simulate(n_id = 4, n_obs_per = 5, seed = 2)
+  x <- ild_prepare(d, id = "id", time = "time")
+  x <- ild_center(x, y)
+  fit <- ild_lme(y ~ y_bp + y_wp + (1 | id), data = x, ar1 = FALSE, warn_no_ar1 = FALSE)
+  tt <- ild_tidy(fit)
+  expect_true(nrow(tt) >= 1L)
+  expect_equal(tt, tidy_ild_model(fit))
+  aug <- ild_augment(fit)
+  expect_true(nrow(aug) == nrow(x))
+  expect_equal(aug, augment_ild_model(fit))
+})
+
+test_that("ild_diagnose returns bundle with legacy ild_diagnostics in residual", {
+  d <- ild_simulate(n_id = 4, n_obs_per = 5, seed = 3)
+  x <- ild_prepare(d, id = "id", time = "time")
+  x <- ild_center(x, y)
+  fit <- ild_lme(y ~ y_bp + y_wp + (1 | id), data = x, ar1 = FALSE, warn_no_ar1 = FALSE)
+  a <- ild_diagnose(fit, data = x, type = "qq")
+  b <- ild_diagnostics(fit, data = x, type = "qq")
+  expect_s3_class(a, "ild_diagnostics_bundle")
+  expect_equal(a$residual$legacy_ild_diagnostics$meta$type, b$meta$type)
+})
+
+test_that("ild_autoplot dispatches for diagnostics and lmerMod", {
+  d <- ild_simulate(n_id = 4, n_obs_per = 5, seed = 4)
+  x <- ild_prepare(d, id = "id", time = "time")
+  x <- ild_center(x, y)
+  fit <- ild_lme(y ~ y_bp + y_wp + (1 | id), data = x, ar1 = FALSE, warn_no_ar1 = FALSE)
+  diag <- ild_diagnostics(fit, data = x, type = "qq")
+  p1 <- ild_autoplot(diag)
+  expect_type(p1, "list")
+  expect_true("qq" %in% names(p1))
+  p2 <- ild_autoplot(fit, type = "fitted_vs_actual")
+  expect_s3_class(p2, "ggplot")
+})

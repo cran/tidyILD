@@ -41,6 +41,9 @@
 #'   \code{n_sim}, \code{n_reject}, \code{n_converged}, \code{n_failed},
 #'   \code{alpha}, \code{test_term}. If \code{return_sims = TRUE}, also
 #'   \code{sim_results} (tibble of per-run results).
+#' @seealso [ild_recovery_metrics()] to summarize bias, RMSE, and coverage from
+#'   \code{return_sims}. \href{../doc/benchmark-simulation-recovery.html}{\code{vignette("benchmark-simulation-recovery", package = "tidyILD")}}
+#'   (worked example).
 #' @examples
 #' set.seed(42)
 #' res <- ild_power(

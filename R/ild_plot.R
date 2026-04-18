@@ -7,15 +7,18 @@
 #' @param x An ILD tibble or a fitted [ild_lme()] model.
 #' @param type Character (or vector). One or more of: `"trajectory"`, `"heatmap"`,
 #'   `"gaps"`, `"missingness"`, `"fitted"` or `"fitted_vs_actual"` (requires fitted model),
+#'   `"predicted_trajectory"` (observed and fitted lines vs time; requires fitted model),
 #'   `"residual_acf"` (requires fitted model; ACF is over observation sequence, not adjusted for
 #'   irregular time gaps). If length > 1, returns a named list of ggplots.
 #' @param var For `trajectory` or `heatmap`, the variable to plot (optional;
 #'   if missing and only one non-.ild_* column exists, it is used).
 #' @param id_var For trajectory, variable used for grouping (default `.ild_id`).
-#' @param time_var For trajectory/gaps, x-axis: `.ild_time_num` or `.ild_seq`.
-#' @param max_ids For trajectory, max number of persons to plot (sampled if
+#' @param time_var For trajectory/gaps/`predicted_trajectory`, x-axis: `.ild_time_num` or `.ild_seq`.
+#' @param max_ids For trajectory and `predicted_trajectory`, max number of persons to plot (sampled if
 #'   larger; default 20). Set to `Inf` to plot all.
 #' @param seed Integer. Seed for sampling ids when `max_ids` is set (default 42).
+#' @param facet_by Optional character: name of a column in the ILD (e.g. cluster or site) to pass to
+#'   [ggplot2::facet_wrap()] for `trajectory`, `heatmap`, `gaps`, and `predicted_trajectory`.
 #' @param ... Unused.
 #' @return A single ggplot when `length(type) == 1`, or a named list of ggplots when `length(type) > 1`.
 #' @examples
@@ -23,19 +26,25 @@
 #' fit <- ild_lme(y ~ 1 + (1 | id), data = x, ar1 = FALSE, warn_no_ar1 = FALSE)
 #' ild_plot(fit, type = "fitted_vs_actual")
 #' ild_plot(fit, type = c("fitted_vs_actual", "residual_acf"))
-#' @importFrom ggplot2 aes geom_line geom_point geom_tile geom_abline labs theme_minimal ggplot
+#' @importFrom ggplot2 aes geom_line geom_point geom_tile geom_abline labs theme_minimal ggplot vars
+#' @importFrom ggplot2 facet_wrap
+#' @importFrom rlang .data sym
 #' @export
 ild_plot <- function(x,
-                     type = c("trajectory", "heatmap", "gaps", "missingness", "fitted", "fitted_vs_actual", "residual_acf"),
+                     type = c(
+                       "trajectory", "heatmap", "gaps", "missingness", "fitted", "fitted_vs_actual",
+                       "predicted_trajectory", "residual_acf"
+                     ),
                      var = NULL,
                      id_var = ".ild_id",
                      time_var = c(".ild_time_num", ".ild_seq"),
                      max_ids = 20L,
                      seed = 42L,
+                     facet_by = NULL,
                      ...) {
   type <- match.arg(type, several.ok = TRUE)
   time_var <- match.arg(time_var)
-  fit_types <- c("fitted", "fitted_vs_actual", "residual_acf")
+  fit_types <- c("fitted", "fitted_vs_actual", "predicted_trajectory", "residual_acf")
   if (any(type %in% fit_types)) {
     data <- if (inherits(x, "ild_lme") || !is.null(attr(x, "ild_data", exact = TRUE))) attr(x, "ild_data", exact = TRUE) else NULL
     if (is.null(data)) stop("Fitted model is missing ild_data attribute.", call. = FALSE)
@@ -58,10 +67,11 @@ ild_plot <- function(x,
       return(ild_plot_missingness(data, miss_vars, id_var, time_var))
     }
     switch(t,
-      trajectory = ild_plot_trajectory(data, var, id_var, time_var, max_ids, seed),
-      heatmap = ild_plot_heatmap(data, var, id_var, time_var),
-      gaps = ild_plot_gaps(data, id_var, time_var),
+      trajectory = ild_plot_trajectory(data, var, id_var, time_var, max_ids, seed, facet_by),
+      heatmap = ild_plot_heatmap(data, var, id_var, time_var, facet_by),
+      gaps = ild_plot_gaps(data, id_var, time_var, facet_by),
       fitted = ild_plot_fitted(x, data),
+      predicted_trajectory = .ild_plot_predicted_trajectory_impl(x, data, time_var, max_ids, seed, facet_by),
       residual_acf = ild_plot_residual_acf(x, data)
     )
   }
@@ -73,10 +83,11 @@ ild_plot <- function(x,
     }
     plot_type <- if (type == "fitted_vs_actual") "fitted" else type
     return(switch(plot_type,
-      trajectory = ild_plot_trajectory(data, var, id_var, time_var, max_ids, seed),
-      heatmap = ild_plot_heatmap(data, var, id_var, time_var),
-      gaps = ild_plot_gaps(data, id_var, time_var),
+      trajectory = ild_plot_trajectory(data, var, id_var, time_var, max_ids, seed, facet_by),
+      heatmap = ild_plot_heatmap(data, var, id_var, time_var, facet_by),
+      gaps = ild_plot_gaps(data, id_var, time_var, facet_by),
       fitted = ild_plot_fitted(x, data),
+      predicted_trajectory = .ild_plot_predicted_trajectory_impl(x, data, time_var, max_ids, seed, facet_by),
       residual_acf = ild_plot_residual_acf(x, data)
     ))
   }
@@ -85,32 +96,105 @@ ild_plot <- function(x,
   out
 }
 
-ild_plot_trajectory <- function(data, var, id_var, time_var, max_ids, seed) {
+.ild_plot_add_facet <- function(p, data, facet_by) {
+  if (is.null(facet_by) || !nzchar(as.character(facet_by)[1L])) {
+    return(p)
+  }
+  fb <- as.character(facet_by)[1L]
+  if (!fb %in% names(data)) {
+    stop("facet_by column '", fb, "' not found in data.", call. = FALSE)
+  }
+  p + ggplot2::facet_wrap(ggplot2::vars(!!rlang::sym(fb)))
+}
+
+ild_plot_trajectory <- function(data, var, id_var, time_var, max_ids, seed, facet_by = NULL) {
   ids <- unique(data[[id_var]])
   if (length(ids) > max_ids && is.finite(max_ids)) {
     set.seed(seed)
     ids <- sample(ids, max_ids)
     data <- data[data[[id_var]] %in% ids, ]
   }
-  ggplot2::ggplot(data, ggplot2::aes(x = .data[[time_var]], y = .data[[var]], group = .data[[id_var]])) +
+  p <- ggplot2::ggplot(data, ggplot2::aes(x = .data[[time_var]], y = .data[[var]], group = .data[[id_var]])) +
     ggplot2::geom_line(alpha = 0.7) +
     ggplot2::geom_point(alpha = 0.5, size = 1) +
     ggplot2::labs(x = "Time", y = var, title = "Trajectories") +
     ggplot2::theme_minimal()
+  .ild_plot_add_facet(p, data, facet_by)
 }
 
-ild_plot_heatmap <- function(data, var, id_var, time_var) {
-  ggplot2::ggplot(data, ggplot2::aes(x = .data[[time_var]], y = factor(.data[[id_var]]), fill = .data[[var]])) +
+ild_plot_heatmap <- function(data, var, id_var, time_var, facet_by = NULL) {
+  p <- ggplot2::ggplot(data, ggplot2::aes(x = .data[[time_var]], y = factor(.data[[id_var]]), fill = .data[[var]])) +
     ggplot2::geom_tile() +
     ggplot2::labs(x = "Time", y = "Person", fill = var, title = "Heatmap") +
     ggplot2::theme_minimal()
+  .ild_plot_add_facet(p, data, facet_by)
 }
 
-ild_plot_gaps <- function(data, id_var, time_var) {
-  ggplot2::ggplot(data, ggplot2::aes(x = .data[[time_var]], y = .data[[".ild_dt"]], color = .data[[id_var]])) +
+ild_plot_gaps <- function(data, id_var, time_var, facet_by = NULL) {
+  p <- ggplot2::ggplot(data, ggplot2::aes(x = .data[[time_var]], y = .data[[".ild_dt"]], color = .data[[id_var]])) +
     ggplot2::geom_point(alpha = 0.7) +
     ggplot2::labs(x = "Time", y = "Interval", title = "Intervals (gaps)") +
     ggplot2::theme_minimal()
+  .ild_plot_add_facet(p, data, facet_by)
+}
+
+.ild_plot_predicted_trajectory_impl <- function(fit, data, time_var, max_ids, seed, facet_by = NULL) {
+  aug <- if (inherits(fit, "brmsfit")) ild_augment(fit) else augment_ild_model(fit)
+  if (nrow(aug) != nrow(data)) {
+    stop(
+      "Augmented rows must match ILD rows; refit with ild_lme() / ild_brms() on the same ILD object.",
+      call. = FALSE
+    )
+  }
+  if (!time_var %in% names(data)) {
+    stop("time_var '", time_var, "' not found in ILD data.", call. = FALSE)
+  }
+  df <- data.frame(
+    .ild_id = aug$.ild_id,
+    time = data[[time_var]],
+    observed = aug$.outcome,
+    fitted = aug$.fitted,
+    stringsAsFactors = FALSE
+  )
+  if (!is.null(facet_by)) {
+    fb <- as.character(facet_by)[1L]
+    if (!fb %in% names(data)) {
+      stop("facet_by column '", fb, "' not found in data.", call. = FALSE)
+    }
+    df[[fb]] <- data[[fb]]
+  }
+  ids <- unique(df$.ild_id)
+  if (length(ids) > max_ids && is.finite(max_ids)) {
+    set.seed(seed)
+    keep <- sample(ids, max_ids)
+    df <- df[df$.ild_id %in% keep, , drop = FALSE]
+  }
+  dfl <- rbind(
+    data.frame(df, series = "observed", value = df$observed, stringsAsFactors = FALSE),
+    data.frame(df, series = "fitted", value = df$fitted, stringsAsFactors = FALSE)
+  )
+  p <- ggplot2::ggplot(
+    dfl,
+    ggplot2::aes(
+      x = .data$time,
+      y = .data$value,
+      group = interaction(.data$.ild_id, .data$series),
+      color = .data$series
+    )
+  ) +
+    ggplot2::geom_line(alpha = 0.65, linewidth = 0.4) +
+    ggplot2::labs(
+      x = time_var,
+      y = NULL,
+      color = NULL,
+      title = "Observed and fitted vs time"
+    ) +
+    ggplot2::theme_minimal()
+  if (!is.null(facet_by) && nzchar(as.character(facet_by)[1L])) {
+    fb <- as.character(facet_by)[1L]
+    p <- p + ggplot2::facet_wrap(ggplot2::vars(!!rlang::sym(fb)))
+  }
+  p
 }
 
 ild_plot_missingness <- function(data, vars, id_var, time_var) {
@@ -136,10 +220,8 @@ ild_plot_missingness <- function(data, vars, id_var, time_var) {
 }
 
 ild_plot_fitted <- function(fit, data) {
-  aug <- augment_ild_model(fit)
-  resp_name <- setdiff(names(aug), c(".ild_id", ".ild_time", ".fitted", ".resid"))[1L]
-  if (is.na(resp_name)) resp_name <- "outcome"
-  ggplot2::ggplot(aug, ggplot2::aes(x = .data[[resp_name]], y = .data$.fitted, color = .data$.ild_id)) +
+  aug <- if (inherits(fit, "brmsfit")) ild_augment(fit) else augment_ild_model(fit)
+  ggplot2::ggplot(aug, ggplot2::aes(x = .data$.outcome, y = .data$.fitted, color = .data$.ild_id)) +
     ggplot2::geom_point(alpha = 0.7) +
     ggplot2::geom_abline(slope = 1, intercept = 0, linetype = 2) +
     ggplot2::labs(x = "Observed", y = "Fitted", title = "Fitted vs Observed") +
@@ -164,11 +246,12 @@ ild_plot_residual_acf <- function(fit, data) {
 #' Person x time heatmap of a variable. See [ild_plot()].
 #' @param x ILD object or fitted model (for heatmap, data are taken from ild_data if model).
 #' @param var Variable to plot. If NULL, single data column is used.
+#' @param facet_by Optional column in ILD for [ggplot2::facet_wrap()].
 #' @param ... Passed to [ild_plot()] (e.g. id_var, time_var).
 #' @return A ggplot object.
 #' @export
-ild_heatmap <- function(x, var = NULL, ...) {
-  ild_plot(x, type = "heatmap", var = var, ...)
+ild_heatmap <- function(x, var = NULL, facet_by = NULL, ...) {
+  ild_plot(x, type = "heatmap", var = var, facet_by = facet_by, ...)
 }
 
 #' ILD spaghetti / person trajectories (alias for ild_plot with type = "trajectory")
@@ -176,9 +259,43 @@ ild_heatmap <- function(x, var = NULL, ...) {
 #' Line plot of variable over time, one line per person. See [ild_plot()].
 #' @param x ILD object or fitted model.
 #' @param var Variable to plot. If NULL, single data column is used.
+#' @param facet_by Optional column in ILD for [ggplot2::facet_wrap()] (e.g. cluster).
 #' @param ... Passed to [ild_plot()] (e.g. max_ids, seed, id_var, time_var).
 #' @return A ggplot object.
 #' @export
-ild_spaghetti <- function(x, var = NULL, ...) {
-  ild_plot(x, type = "trajectory", var = var, ...)
+ild_spaghetti <- function(x, var = NULL, facet_by = NULL, ...) {
+  ild_plot(x, type = "trajectory", var = var, facet_by = facet_by, ...)
+}
+
+#' Observed and fitted values vs time (trajectory overlay)
+#'
+#' Uses [augment_ild_model()] or [ild_augment()] on the fitted object and plots
+#' two lines per person (observed vs fitted) against `time_var`. For a scatter of
+#' observed vs fitted, use [ild_plot()] with `type = "fitted"`.
+#'
+#' @param fit Model from [ild_lme()] or [ild_brms()] (must carry `ild_data`).
+#' @param time_var `.ild_time_num` or `.ild_seq` (default first of these in [match.arg()]).
+#' @param max_ids,seed Passed through for subsampling persons.
+#' @param facet_by Optional column name in `ild_data` for [ggplot2::facet_wrap()].
+#' @return A `ggplot` object.
+#' @export
+ild_plot_predicted_trajectory <- function(fit,
+                                          time_var = c(".ild_time_num", ".ild_seq"),
+                                          max_ids = 20L,
+                                          seed = 42L,
+                                          facet_by = NULL) {
+  time_var <- match.arg(time_var)
+  data <- attr(fit, "ild_data", exact = TRUE)
+  if (is.null(data)) {
+    stop("Fit must have ild_data (use ild_lme() or ild_brms()).", call. = FALSE)
+  }
+  validate_ild(data)
+  ild_plot(
+    fit,
+    type = "predicted_trajectory",
+    time_var = time_var,
+    max_ids = max_ids,
+    seed = seed,
+    facet_by = facet_by
+  )
 }

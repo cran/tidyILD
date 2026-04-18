@@ -33,10 +33,10 @@ test_that("tidy_ild_model with se = robust returns numeric SEs and CIs", {
   fit <- ild_lme(y ~ y_bp + y_wp + (1 | id), data = dat, ar1 = FALSE, warn_no_ar1 = FALSE)
   tbl <- tidy_ild_model(fit, se = "robust", robust_type = "CR2")
   expect_s3_class(tbl, "tbl_df")
-  expect_named(tbl, c("term", "estimate", "std_error", "ci_low", "ci_high", "p_value"))
+  expect_true(all(ild_tidy_schema()$required %in% names(tbl)))
   expect_true(all(is.finite(tbl$std_error)))
-  expect_true(all(is.finite(tbl$ci_low)))
-  expect_true(all(is.finite(tbl$ci_high)))
+  expect_true(all(is.finite(tbl$conf_low)))
+  expect_true(all(is.finite(tbl$conf_high)))
   expect_true(all(is.finite(tbl$p_value)))
 })
 

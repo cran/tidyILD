@@ -78,3 +78,11 @@ ild_time_to_num <- function(t) {
   if (is.null(t)) stop("Time column could not be converted to numeric (Date/POSIXct/numeric).", call. = FALSE)
   as.numeric(t)
 }
+
+#' Installed package version for provenance (internal)
+#' @param pkg Character package name (e.g. \code{"lme4"}).
+#' @return Character version or \code{NA_character_} if not installed.
+#' @noRd
+ild_backend_pkg_version <- function(pkg) {
+  tryCatch(as.character(utils::packageVersion(pkg)), error = function(e) NA_character_)
+}

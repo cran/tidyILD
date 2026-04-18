@@ -16,6 +16,7 @@ knitr::opts_chunk$set(
   fig.width = 6,
   fig.height = 4
 )
+fit_ar1 <- NULL
 ```
 
 This vignette shows a minimal analysis report: fit a model, print fixed effects, plot fitted vs observed, and show residual ACF and Q-Q.

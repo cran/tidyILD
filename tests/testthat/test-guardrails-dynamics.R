@@ -1,0 +1,22 @@
+test_that("GR_LAG_MEAN_STRONG_RESIDUAL_ACF_NO_AR triggers with synthetic ACF", {
+  d <- ild_simulate(n_id = 10, n_obs_per = 14, seed = 906L)
+  x <- ild_prepare(d, id = "id", time = "time")
+  x <- ild_lag(x, y, n = 1L, mode = "gap_aware")
+  x <- dplyr::filter(x, !is.na(.data$y_lag1))
+  fit <- ild_lme(y ~ y_lag1 + (1 | id), data = x, ar1 = FALSE, warn_no_ar1 = FALSE, warn_uncentered = FALSE)
+  b <- ild_diagnose(fit, data = x, type = c("residual_acf", "qq"))
+  b$residual$stats$acf$pooled <- tibble::tibble(lag = c(0, 1), acf = c(1, 0.35))
+  gr <- tidyILD:::evaluate_guardrails_contextual(fit, x, b, engine = "lmer")
+  expect_true(any(gr$rule_id == "GR_LAG_MEAN_STRONG_RESIDUAL_ACF_NO_AR"))
+})
+
+test_that("GR_INDEX_LAG_IRREGULAR_SPACING triggers with index lag on irregular ILD", {
+  d <- ild_simulate(n_id = 6, n_obs_per = 10, irregular = TRUE, seed = 907L)
+  x <- ild_prepare(d, id = "id", time = "time", gap_threshold = 0)
+  x <- ild_lag(x, y, n = 1L, mode = "index")
+  x <- dplyr::filter(x, !is.na(.data$y_lag1))
+  fit <- ild_lme(y ~ y_lag1 + (1 | id), data = x, ar1 = FALSE, warn_no_ar1 = FALSE, warn_uncentered = FALSE)
+  b <- ild_diagnose(fit, data = x, type = "qq")
+  gr <- tidyILD:::evaluate_guardrails_contextual(fit, x, b, engine = "lmer")
+  expect_true(any(gr$rule_id == "GR_INDEX_LAG_IRREGULAR_SPACING"))
+})

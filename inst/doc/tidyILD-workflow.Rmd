@@ -20,6 +20,8 @@ knitr::opts_chunk$set(
 
 This vignette walks through the full tidyILD pipeline: prepare data, inspect structure, apply within-between decomposition and lags, fit a mixed-effects model, and run diagnostics and plots.
 
+For **which temporal assumptions** (lags in the mean, residual AR, time-varying effects, state-space) fit your question, see `vignette("temporal-dynamics-model-choice", package = "tidyILD")`.
+
 ## Simulate and prepare
 
 ```{r prepare}
@@ -79,6 +81,50 @@ ild_plot(x, type = "trajectory", var = "y", max_ids = 5)
 ild_plot(fit1, type = "fitted")
 ```
 
+## MSM-style weights (IPTW and IPCW) — optional
+
+For a **marginal structural model**–style sensitivity analysis, you can build **inverse probability of treatment** weights: either **pooled** (`ild_iptw_weights()`) or **sequential MSM** for time-varying `A_t` (`ild_iptw_msm_weights()` after building history with `ild_lag()`), then **inverse probability of censoring** weights for **monotone dropout** (`ild_ipcw_weights()`), multiply into a joint analysis weight with `ild_joint_msm_weights()`, and refit with `ild_ipw_refit()`. This path targets **treatment assignment** and **loss-to-follow-up**; it is distinct from **outcome missingness** IPW (`ild_missing_model()` + `ild_ipw_weights()`). Assumptions (positivity, correct models) are still yours; for **uncertainty** with estimated weights, use **`ild_msm_bootstrap()`** (see `?ild_msm_inference`) instead of trusting default `lmer` SEs alone—**`weight_policy = "reestimate_weights"`** with a **`weights_fn`** that rebuilds IPW on each bootstrap resample is often the appropriate choice when you want first-stage uncertainty reflected; **`fixed_weights`** resamples clusters but keeps the weights attached to resampled rows (faster, approximate).
+
+```{r msm_weights, eval = FALSE}
+# Example skeleton (not run in the vignette build)
+x2 <- ild_simulate(n_id = 12, n_obs_per = 10, seed = 1)
+x2$stress <- rnorm(nrow(x2))
+x2$trt <- rbinom(nrow(x2), 1L, 0.45)
+x2 <- ild_prepare(x2, id = "id", time = "time")
+x2 <- ild_center(x2, y)
+x2 <- ild_iptw_weights(x2, treatment = "trt", predictors = "stress")
+# Sequential A_t: x2 <- ild_lag(x2, stress); x2 <- ild_lag(x2, trt); ...
+# x2 <- ild_iptw_msm_weights(x2, treatment = "trt", history = ~ stress_lag1 + trt_lag1)
+x2 <- ild_ipcw_weights(x2, predictors = "stress")
+x2 <- ild_joint_msm_weights(x2)
+fit_msm <- ild_lme(y ~ y_bp + y_wp + stress + (1 | id), data = x2,
+  ar1 = FALSE, warn_no_ar1 = FALSE, warn_uncentered = FALSE)
+fit_msm_w <- ild_ipw_refit(fit_msm, data = x2)
+```
+
+**Balance and overlap:** After weights are attached, use `ild_msm_balance()` (weighted SMDs), `ild_ipw_ess()` (Kish effective sample size), and `ild_msm_overlap_plot()` (propensity densities by treatment—pooled IPTW or sequential MSM via `attr(x, "ild_iptw_msm_fits")`). Optional: `ild_diagnose(..., balance = TRUE, balance_treatment = "trt", balance_covariates = c("stress"))` fills `causal$balance` and may trigger guardrails `GR_MSM_BALANCE_SMD_HIGH` / `GR_MSM_ESS_LOW`. `ild_autoplot(bundle, section = "causal", type = "overlap", treatment = "trt")` draws overlap when `ggplot2` is available.
+
+For a full assumptions-oriented walkthrough (exchangeability, positivity/overlap, consistency, and weight-model correctness) and simulation-based recovery checks, see `vignette("msm-identification-and-recovery", package = "tidyILD")`. When using `ild_msm_fit()`, check `fit_obj$inference$status`/`reason` for degraded paths, or set `strict_inference = TRUE` to fail fast.
+
+A minimal **bootstrap** illustration (small `n_boot` for speed; increase in real analyses):
+
+```{r msm_bootstrap, eval = requireNamespace("lme4", quietly = TRUE)}
+set.seed(3)
+xb <- ild_simulate(n_id = 10, n_obs_per = 5, seed = 3)
+xb$stress <- rnorm(nrow(xb))
+xb <- ild_prepare(xb, id = "id", time = "time")
+xb <- ild_center(xb, y)
+xb$.ipw <- runif(nrow(xb), 0.85, 1.15)
+fb <- ild_lme(y ~ y_bp + y_wp + stress + (1 | id), data = xb,
+  ar1 = FALSE, warn_no_ar1 = FALSE, warn_uncentered = FALSE)
+fwb <- ild_ipw_refit(fb, data = xb, weights = ".ipw")
+bs_fixed <- ild_msm_bootstrap(fwb, n_boot = 20L, weight_policy = "fixed_weights", seed = 3)
+tidy_ild_msm_bootstrap(bs_fixed)
+# reestimate_weights: weights_fn must return ILD with the weight column, e.g. re-run IPTW pipeline:
+bs_re <- ild_msm_bootstrap(fwb, n_boot = 12L, weight_policy = "reestimate_weights",
+  seed = 4, weights_fn = function(d) { d$.ipw <- runif(nrow(d), 0.85, 1.15); d })
+```
+
 ## Reproducibility
 
 Use a fixed seed when simulating or fitting models so results can be recreated. The pipeline is deterministic for a given seed and data. When saving results (e.g. after [ild_lme()] or [ild_diagnostics()]), you can attach a reproducibility manifest and save a single bundle with [ild_manifest()] and [ild_bundle()]:
@@ -90,3 +136,5 @@ bundle <- ild_bundle(fit1, manifest = manifest, label = "model_ar1")
 # saveRDS(bundle, "run.rds")  # one file with result + manifest + label
 names(bundle)
 ```
+
+For **simulation-based recovery and power** under the bundled `ild_simulate()` DGP, see `vignette("benchmark-simulation-recovery", package = "tidyILD")`.

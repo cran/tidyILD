@@ -46,3 +46,7 @@ x <- ild_prepare(d, id = "id", time = "time")
 d2 <- ild_simulate(n_id = 100, n_time = 50, ar1 = 0.4, wp_effect = 0.6,
   bp_effect = 0.3, irregular = TRUE, seed = 1)
 }
+\seealso{
+\href{../doc/benchmark-simulation-recovery.html}{\code{vignette("benchmark-simulation-recovery", package = "tidyILD")}}
+  (simulation benchmarks and DGP description).
+}

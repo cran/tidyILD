@@ -26,8 +26,34 @@ optionally [ild_decomposition()] and [ild_missing_pattern()] into one
 design summary. Use before modeling to see spacing class, correlation
 recommendation, within- vs between-person variance, and missingness.
 }
+\details{
+Also a **section provider** for [ild_diagnose()] (see [ild_diagnostics_utilities]).
+}
+\section{Bundle integration}{
+
+[ild_diagnose()] embeds this object in \code{design$ild_design_check} on the
+\code{\link{ild_diagnostics_bundle}}.
+}
+
 \examples{
 d <- ild_simulate(n_id = 10, n_obs_per = 8, irregular = TRUE, seed = 1)
 x <- ild_prepare(d, id = "id", time = "time", gap_threshold = 7200)
 ild_design_check(x, vars = "y")
 }
+\seealso{
+[ild_diagnose()], [ild_diagnostics_bundle()]
+
+Other ild_diagnostics_utilities: 
+\code{\link{ild_ipcw_weights}()},
+\code{\link{ild_iptw_msm_weights}()},
+\code{\link{ild_iptw_weights}()},
+\code{\link{ild_ipw_weights}()},
+\code{\link{ild_joint_msm_weights}()},
+\code{\link{ild_missing_cohort}()},
+\code{\link{ild_missing_compliance}()},
+\code{\link{ild_missing_hazard_first}()},
+\code{\link{ild_missing_model}()},
+\code{\link{ild_missing_pattern}()},
+\code{\link{ild_missingness_report}()}
+}
+\concept{ild_diagnostics_utilities}

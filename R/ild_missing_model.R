@@ -5,6 +5,15 @@
 #' inverse-probability weights and [ild_ipw_refit()] for a sensitivity analysis.
 #' This is not a full MNAR solution—treat as diagnostic and sensitivity tooling.
 #'
+#' **Not** run automatically by [ild_diagnose()]; it is the usual prerequisite for
+#' [ild_ipw_weights()] when you want IPW summaries in the bundle (see [ild_diagnostics_utilities]).
+#'
+#' @section Bundle integration:
+#' There is no separate \dQuote{missingness model} slot on the bundle. This function
+#' supports the IPW workflow; after [ild_ipw_weights()], [ild_diagnose()] can summarize
+#' weights in \code{causal} on \code{\link{ild_diagnostics_bundle}}.
+#'
+#' @family ild_diagnostics_utilities
 #' @param x An ILD object (see [is_ild()]).
 #' @param outcome Character. Name of the variable with missingness (e.g. \code{"mood"}).
 #' @param predictors Character vector. Names of covariates to predict missingness.
@@ -16,6 +25,7 @@
 #'   \code{tidy} (tibble: term, estimate, std_error, p_value), \code{outcome},
 #'   \code{predictors}, and \code{message}. If \code{fit} is not \code{NULL},
 #'   \code{p_missing} is a numeric vector of predicted P(missing) per row (aligned to \code{x}).
+#' @seealso [ild_diagnose()], [ild_diagnostics_bundle()], [ild_ipw_weights()]
 #' @export
 #' @examples
 #' set.seed(1)

@@ -1,0 +1,71 @@
+---
+title: "Visualization in tidyILD"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Visualization in tidyILD}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+## Role of visual inspection
+
+Intensive longitudinal data (ILD) benefits from **layered plots**: raw trajectories, spacing and missingness, within/between structure, model-based residuals, and (when fitted) heterogeneity of person-specific parameters. tidyILD spreads these across `ild_plot()`, `ild_autoplot()` on diagnostics bundles, and backend-specific helpers (KFAS, TVEM, circadian). There is no single `ild_visualize()`; use the table below as an index.
+
+## Map: question → function → bundle section (if any)
+
+| Question | Primary API | Notes |
+|----------|-------------|--------|
+| Spaghetti trajectories | `ild_spaghetti()`, `ild_plot(..., type = "trajectory")` | `max_ids`, `time_var`, optional `facet_by` |
+| Person × time heatmap | `ild_heatmap()`, `ild_plot(..., type = "heatmap")` | Optional `facet_by` for clusters |
+| Spacing / intervals | `ild_plot(..., type = "gaps")`, `ild_autoplot(bundle, section = "design", type = "coverage")` | `ild_spacing()` is tabular + AR1/CAR1 hint |
+| Missingness pattern | `ild_plot(..., type = "missingness")`, `ild_missing_pattern()$plot` | Bundle: `section = "data", type = "missingness"` |
+| Within/between densities | `ild_center_plot()`, `ild_decomposition(..., plot = TRUE)` | Not marginal effects of fitted model |
+| Residual ACF | `ild_plot(fit, type = "residual_acf")`, `ild_autoplot(bundle, section = "residual", type = "acf")` | Sequence-based lag; see `?ild_acf` |
+| Obs vs fitted **scatter** | `ild_plot(fit, type = "fitted")` | |
+| Obs vs fitted **over time** | `ild_plot_predicted_trajectory(fit)`, `ild_plot(..., type = "predicted_trajectory")` | Two lines per id |
+| Person-specific / partial pooling | `ild_autoplot(h, type = "caterpillar")` on `ild_heterogeneity()`; bundle `section = "fit", type = "heterogeneity"` | |
+| Time-varying effect | `ild_tvem_plot()` | After `ild_tvem()` |
+| State space / continuous time | `ild_plot_states()`, `ild_plot_forecast()`, `ild_plot_filtered_vs_smoothed()` on `ild_kfas()` fits; `ild_autoplot` for ctsem where supported | Optional **KFAS** / **ctsem** |
+| Diurnal pattern | `ild_circadian()` | |
+
+After `ild_diagnose()`, prefer `ild_autoplot(bundle, ...)` for a consistent section layout (`residual`, `fit`, `predictive`, `data`, `design`, `causal`).
+
+## Example: spaghetti, predicted trajectories, facet by cluster
+
+```{r plot-examples}
+library(tidyILD)
+set.seed(1)
+d <- ild_simulate(n_id = 24, n_obs_per = 10, seed = 1)
+d$cluster <- rep(LETTERS[1:3], length.out = nrow(d))
+x <- ild_prepare(d, id = "id", time = "time")
+ild_spaghetti(x, var = "y", facet_by = "cluster", max_ids = 12L)
+
+fit <- ild_lme(y ~ 1 + (1 | id), data = x, ar1 = FALSE, warn_no_ar1 = FALSE, warn_uncentered = FALSE)
+ild_plot_predicted_trajectory(fit, time_var = ".ild_seq", max_ids = 8L, facet_by = "cluster")
+```
+
+## Recipe: facet panels without a dedicated helper
+
+Any ggplot from `ild_*` can be stored and extended (e.g. `p + facet_wrap(vars(week))`) if you add a column to the ILD first. The `facet_by` argument on `ild_plot()` passes through to [`ggplot2::facet_wrap()`](https://ggplot2.tidyverse.org/reference/facet_wrap.html) for trajectory, heatmap, gaps, and predicted trajectories.
+
+## Partial effects for `_wp` and `_bp` (external packages)
+
+tidyILD does **not** reimplement marginal effects. After `ild_center()`, fit with `y ~ x_wp + x_bp + (1|id)` and use **marginaleffects** or **ggeffects** on the fitted object. Keep the estimand explicit: slopes on `x_wp` are **within-person** associations; `x_bp` captures **between-person** differences in level.
+
+```{r partial-effects-template, eval = FALSE}
+# install.packages(c("marginaleffects", "ggeffects"))  # if needed
+x <- ild_center(x, x)
+fit <- ild_lme(y ~ x_wp + x_bp + (1 | id), data = x, warn_uncentered = FALSE)
+# Example (syntax may vary by package version):
+# marginaleffects::plot_predictions(fit, condition = "x_wp")
+# marginaleffects::plot_predictions(fit, condition = "x_bp")
+# ggeffects::ggpredict(fit, terms = "x_wp")  # then plot() or ggplot2 layer
+```
+
+## See also
+
+`vignette("tidyILD-workflow", package = "tidyILD")`, `vignette("ild-decomposition-and-spacing", package = "tidyILD")`, `?ild_plot`, `?ild_autoplot`.

@@ -1,0 +1,130 @@
+---
+title: "Specialist backends: when to move beyond the default stack"
+author: "tidyILD authors"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Specialist backends: when to move beyond the default stack}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 4
+)
+```
+
+This article explains how **tidyILD** fits next to **specialist** R packages for multivariate dynamics, high-dimensional predictors, and full latent-variable / DSEM-style estimands. It is not a tutorial for those packages; it gives a **contract**, a **routing table**, and **export patterns** so you can preprocess in tidyILD and estimate elsewhere without re-deriving time rules or centering.
+
+## Contract: what tidyILD owns vs what it does not
+
+**tidyILD is responsible for** (when you use its pipeline):
+
+- Encoding **person** and **time**, ordering within person, and **gap** metadata (`ild_prepare()`, `ild_meta()`).
+- **Within-between decomposition** for interpretable mixed models (`ild_center()`, `ild_decomposition()`).
+- **Spacing-aware lags** (`ild_lag()`, `ild_panel_lag_prepare()`, `ild_check_lags()`, `ild_crosslag()` for single-equation shortcuts).
+- **Provenance** on analytic objects and **diagnostics** for models that tidyILD fits (`ild_diagnose()`, guardrails).
+
+**Specialist packages are responsible for** (examples below):
+
+- **Joint** multivariate time-series models, **feedback** systems, and **time-varying parameters** at the system level (e.g. **dynamite**, **lavaan** dynamic SEM, multivariate **brms**).
+- **Penalized** longitudinal models and **variable selection** when **p >> n** (e.g. **PGEE** and related penalized GEE / regularized approaches).
+- **Measurement models** and **latent** structural models beyond the conservative paths wrapped in tidyILD (**ctsem**, **lavaan**, **blavaan**, multivariate **brms**).
+
+tidyILD does **not** aim to reimplement those estimators. The recommended pattern is: **prepare → center → lag → export a plain data frame** → fit with the specialist tool, recording package versions (e.g. `sessionInfo()` or `ild_manifest()` alongside your script).
+
+## Decision table
+
+| Scientific situation | Often sufficient in tidyILD | Bridge (preprocess here, then …) | Primary external tools (examples) |
+|---------------------|----------------------------|----------------------------------|-----------------------------------|
+| Lag predictor → one outcome; AR1/CAR1 residuals | `ild_lag`, `ild_lme`, `ild_brms`, `ild_tvem` | — | — |
+| **Reciprocal** or **multivariate** lags (e.g. stress ↔ mood), joint dynamics | Two separate `ild_lme` / `ild_crosslag` fits are **not** a joint likelihood | Same lags/centering; export data | **dynamite**; **lavaan** DSEM; multivariate **brms**; multivariate **ctsem** |
+| **High-dimensional** time-varying predictors (p >> n), selection | `lme4` / unpenalized mixed models: unstable or non-identified | Screen or penalize **outside** default `ild_lme` path | **PGEE**; regularized GLM/GEE; strong priors in **brms** |
+| **Latent** constructs + dynamics | Observed-variable pipeline; `ild_ctsem()` v1 is intentionally narrow | Export; specify full SEM in target package | **ctsem**, **lavaan** / **blavaan** DSEM |
+| **Nonlinear** or **non-Gaussian** dynamics | `ild_tvem` (GAM); `ild_brms` with appropriate families/splines | Same | **dynamite**; **brms**; state-space with custom observation model |
+| **Time-varying coefficients** (effect of X on Y evolves) | `ild_tvem`; interactions with time; random slopes | Full state-space / Bayesian TVP | **dynamite**; **brms** hierarchical structure |
+| **Causal** estimands with **many** time-varying confounders | MSM / IPW tools in tidyILD for supported paths | High-dimensional confounding may need dedicated methods | Doubly robust / **DML** literature; penalized exposure/confounder models |
+| **Correlated outcomes**, shared residual structure | Separate outcomes ignore cross-outcome correlation | Multivariate formula or dynamic multivariate model | **dynamite**; `mvbind` in **brms** (see `vignette("brms-dynamics-recipes", package = "tidyILD")`) |
+
+For **temporal structure inside** tidyILD (lags vs AR vs TVEM vs KFAS vs ctsem), start with `vignette("temporal-dynamics-model-choice", package = "tidyILD")`.
+
+## Handoff pattern: export after prepare, center, and lag
+
+Use [`ild_meta()`] to recover the **person id column name** stored in metadata (often still `"id"` in your data, but the prepared object also uses internal columns such as `.ild_id`).
+
+```{r export-pattern}
+library(tidyILD)
+set.seed(1)
+d <- ild_simulate(n_id = 8, n_obs_per = 10, seed = 1)
+d$x <- rnorm(nrow(d))
+x <- ild_prepare(d, id = "id", time = "time")
+x <- ild_center(x, y, x)
+x <- ild_lag(x, dplyr::all_of(c("y", "x")), n = 1L, mode = "gap_aware")
+
+meta <- ild_meta(x)
+meta$ild_id
+# Plain data frame for any external package:
+dat <- as.data.frame(x)
+head(dat[, c(meta$ild_id, ".ild_time_num", "y", "y_wp", "y_bp", "x_lag1")])
+```
+
+**Typical columns** to retain for dynamic panel estimators:
+
+- Person identifier: `meta$ild_id` (and/or `.ild_id` if present).
+- Time: `.ild_time_num` and/or your original time column, depending on whether the target software expects continuous time, integer occasion, or clock time.
+- Outcomes and predictors, including `_wp` / `_bp` columns if you want to preserve within-between interpretation in the exported file.
+- Lag columns created by [`ild_lag()`] or [`ild_panel_lag_prepare()`].
+
+[`ild_export_provenance()`] applies to objects that carry provenance (e.g. after modeling in tidyILD). For **external** fits, record inputs and script versions in your project manifest.
+
+## Code stubs (not evaluated)
+
+The chunks below are **illustrative**. They are not run during `R CMD check` because **dynamite** and **PGEE** are not required dependencies of tidyILD. Install those packages from their own instructions, read their vignettes, and adapt column names to match `dat` above.
+
+### dynamite (multivariate dynamic models)
+
+```{r stub-dynamite, eval = FALSE}
+# library(dynamite)
+# After building `dat` from an ILD object (see above):
+# - Map id/time/outcome columns to dynamite's expected data layout.
+# - Specify channels, lags, and priors per package documentation.
+# Example placeholder only (not valid without a real dynamite specification):
+# fit_dyn <- dynamite::dynamite(
+#   dformula = <your dformula>,
+#   data = dat,
+#   ...
+# )
+```
+
+### PGEE (penalized GEE / high-dimensional longitudinal)
+
+```{r stub-pgee, eval = FALSE}
+# library(PGEE)
+# Penalized GEE expects a long data frame with id, repeated outcome, and a matrix
+# or formula interface for high-dimensional covariates — see ?PGEE::PGEE.
+# Use `dat` from tidyILD after centering/lagging so covariates align with your estimand.
+# fit_pgee <- PGEE::PGEE(<formula or design>, data = dat, ...)
+```
+
+### lavaan / blavaan (DSEM)
+
+```{r stub-lavaan, eval = FALSE}
+# library(lavaan)
+# Dynamic SEM is model-syntax-specific; export `dat` and define your model
+# in lavaan's longitudinal / DSEM extensions. tidyILD does not generate lavaan syntax.
+```
+
+## See also
+
+- `vignette("temporal-dynamics-model-choice", package = "tidyILD")`
+- `vignette("brms-dynamics-recipes", package = "tidyILD")` (including multivariate `mvbind` sketch)
+- `vignette("ctsem-continuous-time-dynamics", package = "tidyILD")`
+- `vignette("msm-identification-and-recovery", package = "tidyILD")` (causal MSM path in tidyILD)
+
+```{r session-info, echo = FALSE}
+sessionInfo()
+```

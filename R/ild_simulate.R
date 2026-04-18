@@ -13,6 +13,8 @@
 #' @param bp_effect Numeric. Scale (SD) of between-person random intercept (default 1).
 #' @param seed Integer. Random seed for reproducibility (default 42).
 #' @return A data frame with columns \code{id}, \code{time} (POSIXct), and \code{y}.
+#' @seealso \href{../doc/benchmark-simulation-recovery.html}{\code{vignette("benchmark-simulation-recovery", package = "tidyILD")}}
+#'   (simulation benchmarks and DGP description).
 #' @importFrom stats runif rnorm
 #' @examples
 #' d <- ild_simulate(n_id = 3, n_obs_per = 5, seed = 1)

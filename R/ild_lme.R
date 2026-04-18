@@ -107,8 +107,14 @@ ild_lme <- function(formula,
       random = deparse(random_form),
       ar1 = TRUE,
       correlation_class = cor_class,
-      method = "lme"
-    ), list(n_obs = nrow(data), n_id = length(unique(data[[".ild_id"]]))))
+      method = "lme",
+      backend = "nlme"
+    ), list(
+      n_obs = nrow(data),
+      n_id = length(unique(data[[".ild_id"]])),
+      fit_engine = "lme",
+      backend_version = ild_backend_pkg_version("nlme")
+    ))
     class(fit) <- c(class(fit), "ild_lme")
     return(fit)
   }
@@ -125,8 +131,14 @@ ild_lme <- function(formula,
     formula = deparse(formula),
     ar1 = FALSE,
     correlation_class = NA_character_,
-    method = "lmer"
-  ), list(n_obs = nrow(data), n_id = length(unique(data[[".ild_id"]]))))
+    method = "lmer",
+    backend = "lme4"
+  ), list(
+    n_obs = nrow(data),
+    n_id = length(unique(data[[".ild_id"]])),
+    fit_engine = "lmer",
+    backend_version = ild_backend_pkg_version("lme4")
+  ))
   # Do not add ild_lme to class for S4 lmerMod (breaks residuals/fitted dispatch)
   fit
 }

@@ -160,9 +160,11 @@ ild_meta <- function(x) {
 #' @param gap_threshold Numeric; threshold used for .ild_gap.
 #' @param spacing List; descriptive spacing stats (median, IQR, etc.).
 #' @param tz Character; time zone for the bundle (default \code{"UTC"}).
+#' @param tsibble_meta Optional list from \code{ild_tsibble_capture_meta()} when
+#'   \code{data} was a \code{tbl_ts}; stored under \code{attr(x, "tidyILD")$tsibble}.
 #' @return A tibble with class \code{tidyild_df}, \code{ild_tbl}, and ILD attributes.
 #' @noRd
-new_ild_df <- function(data, ild_id, ild_time, gap_threshold, spacing, tz = "UTC") {
+new_ild_df <- function(data, ild_id, ild_time, gap_threshold, spacing, tz = "UTC", tsibble_meta = NULL) {
   stopifnot(
     is.character(ild_id), length(ild_id) == 1,
     is.character(ild_time), length(ild_time) == 1,
@@ -179,7 +181,7 @@ new_ild_df <- function(data, ild_id, ild_time, gap_threshold, spacing, tz = "UTC
   attr(x, "ild_n_obs")         <- n_obs
   attr(x, "ild_spacing")       <- spacing
   pv <- tryCatch(as.character(utils::packageVersion("tidyILD")), error = function(e) "0.0.0")
-  attr(x, .TIDYILD_ATTR)       <- list(
+  tidy_bundle <- list(
     id_col = ild_id,
     time_col = ild_time,
     tz = tz,
@@ -188,6 +190,10 @@ new_ild_df <- function(data, ild_id, ild_time, gap_threshold, spacing, tz = "UTC
     spacing = spacing,
     provenance = list(version = pv, schema_version = "1", object_type = "ild_data", steps = list())
   )
+  if (!is.null(tsibble_meta)) {
+    tidy_bundle$tsibble <- tsibble_meta
+  }
+  attr(x, .TIDYILD_ATTR) <- tidy_bundle
   class(x) <- c("tidyild_df", "ild_tbl", class(x))
   x
 }
@@ -224,5 +230,5 @@ restore_ild_attrs <- function(from, to) {
 
 # Satisfy R CMD check (tidy eval and rlang)
 if (getRversion() >= "2.15.1") {
-  utils::globalVariables(c(".data", ".ild_time_num", ":="))
+  utils::globalVariables(c(".data", ".ild_time_num", ":=", "y"))
 }

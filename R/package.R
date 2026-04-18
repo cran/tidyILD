@@ -17,57 +17,97 @@
 #' All ILD structure (`.ild_*` columns and `ild_*` metadata) is created only
 #' by \code{\link{ild_prepare}} (via the internal constructor). Downstream
 #' functions expect data prepared with \code{ild_prepare()}. For the full
-#' workflow and applications, see the vignettes.
+#' workflow and applications, see the vignettes. Estimands that require
+#' \strong{joint multivariate dynamics}, \strong{penalized high-dimensional}
+#' longitudinal models, or full \strong{latent-variable DSEM} are better handled
+#' by specialist packages after preprocessing; see
+#' \code{vignette("ild-specialist-backends", package = "tidyILD")}.
 #'
 #' @section Getting started:
 #' A minimal workflow: simulate or load data, prepare with
 #' \code{\link{ild_prepare}}, inspect with \code{\link{ild_summary}}, apply
 #' \code{\link{ild_center}} and \code{\link{ild_lag}}, fit with
-#' \code{\link{ild_lme}}, then \code{\link{ild_diagnostics}} or
-#' \code{\link{ild_plot}}. See the examples below.
+#' \code{\link{ild_lme}} or \code{\link{ild_fit}} (same engines plus optional
+#' \code{backend = "brms"}), then \code{\link{ild_diagnostics}} or
+#' \code{\link{ild_plot}}. State-space: \code{\link{ild_kfas}}. See the examples below.
 #'
 #' @section Function index by topic:
 #' \describe{
-#'   \item{Setup and validation}{\code{\link{ild_prepare}}, \code{\link{as_ild}},
+#'   \item{Contracts (schemas)}{\code{\link{ild_diagnostics_bundle}}, \code{\link{guardrail_registry}},
+#'     \code{\link{ild_tidy_schema}}, \code{\link{ild_augment_schema}}}
+#'   \item{Setup and validation}{\code{\link{ild_prepare}}, \code{\link{ild_as_tsibble}},
+#'     \code{\link{as_ild}},
 #'     \code{\link{is_ild}}, \code{\link{validate_ild}}, \code{\link{ild_meta}}}
 #'   \item{Summaries and inspection}{\code{\link{ild_summary}},
 #'     \code{\link{ild_spacing_class}}, \code{\link{ild_spacing}},
 #'     \code{\link{ild_design_check}}, \code{\link{ild_missing_pattern}},
+#'     \code{\link{ild_missing_compliance}}, \code{\link{ild_missing_cohort}},
+#'     \code{\link{ild_missing_hazard_first}}, \code{\link{ild_missingness_report}},
 #'     \code{\link{ild_missing_bias}}, \code{\link{ild_missing_model}},
 #'     \code{\link{ild_ipw_weights}}, \code{\link{ild_ipw_refit}},
-#'     \code{\link{ild_plot}} (types: trajectory, gaps, missingness)}
+#'     \code{\link{ild_plot}} (types: trajectory, gaps, missingness, predicted_trajectory).
+#'     These overlap with \code{\link{ild_diagnostics_utilities}} (bundle section providers).}
 #'   \item{Within-person and lags}{\code{\link{ild_center}}, \code{\link{ild_center_plot}},
 #'     \code{\link{ild_decomposition}}, \code{\link{ild_lag}}, \code{\link{ild_check_lags}},
-#'     \code{\link{ild_crosslag}}, \code{\link{ild_align}}}
-#'   \item{Modeling}{\code{\link{ild_lme}}, \code{\link{ild_person_model}},
+#'     \code{\link{ild_panel_lag_prepare}}, \code{\link{ild_crosslag}}, \code{\link{ild_align}}}
+#'   \item{Modeling}{\code{\link{ild_fit}} (unified: lme4, nlme, brms), \code{\link{ild_lme}},
+#'     \code{\link{ild_brms}} (Bayesian), \code{\link{ild_kfas}} (KFAS state-space; not via \code{ild_fit}),
+#'     \code{\link{ild_person_model}}, \code{\link{ild_heterogeneity}}, \code{\link{ild_heterogeneity_stratified}},
 #'     \code{\link{ild_tvem}} (time-varying effects)}
-#'   \item{Diagnostics and visualization}{\code{\link{ild_acf}}, \code{\link{ild_diagnostics}},
-#'     \code{\link{ild_plot}} (types: fitted, residual_acf), \code{\link{ild_heatmap}},
+#'   \item{Diagnostics and visualization}{\code{\link{ild_diagnose}} (\code{\link{ild_diagnostics_bundle}}),
+#'     \code{\link{ild_diagnostics_utilities}}, \code{\link{ild_acf}}, \code{\link{ild_diagnostics}},
+#'     \code{\link{ild_plot}} (types: fitted, predicted_trajectory, residual_acf; optional \code{facet_by}),
+#'     \code{\link{ild_plot_predicted_trajectory}}, \code{\link{ild_heatmap}},
 #'     \code{\link{ild_spaghetti}}, \code{\link{ild_circadian}}, \code{\link{ild_tvem_plot}}}
 #'   \item{Provenance and methods}{\code{\link{ild_provenance}}, \code{\link{ild_history}},
 #'     \code{\link{ild_methods}}, \code{\link{ild_report}}, \code{\link{ild_compare_pipelines}},
-#'     \code{\link{ild_export_provenance}}}
+#'     \code{\link{ild_compare_fits}}, \code{\link{ild_export_provenance}}}
 #'   \item{Reproducibility}{\code{\link{ild_manifest}}, \code{\link{ild_bundle}}}
+#'   \item{Package standards (developers)}{\code{vignette("developer-contracts", package = "tidyILD")};
+#'     normative spec: \code{system.file("dev", "DEVELOPER_CONTRACTS.md", package = "tidyILD")}}
 #'   \item{Utilities and data}{\code{\link{ild_simulate}}, \code{\link{ild_power}}, \code{\link{ema_example}}}
 #'   \item{Person-level}{\code{\link{ild_person_model}}, \code{\link{ild_person_distribution}}}
-#'   \item{Model tidiers}{\code{\link{augment_ild_model}}, \code{\link{tidy_ild_model}}
+#'   \item{Model tidiers}{\code{\link{ild_prior_ild}}, \code{\link{ild_tidy}}, \code{\link{ild_augment}},
+#'     \code{\link{ild_diagnose}}, \code{\link{ild_autoplot}},
+#'     \code{\link{augment_ild_model}}, \code{\link{tidy_ild_model}}
 #'     (model or robust SE via \code{se = "robust"}), \code{\link{ild_robust_se}};
 #'     \code{\link{tidy.ild_lme}}, \code{\link{augment.ild_lme}} (broom.mixed, see \code{\link{broom_ild_lme}})}
 #' }
+#'
+#' @section Visualization:
+#' \code{\link{ild_plot}}, \code{\link{ild_spaghetti}}, and \code{\link{ild_heatmap}} cover trajectories,
+#' heatmaps, gaps, and missingness; optional \code{facet_by} adds panels (e.g. by cluster).
+#' For observed and fitted lines over time, use \code{\link{ild_plot_predicted_trajectory}} or
+#' \code{ild_plot(..., type = "predicted_trajectory")}. After \code{\link{ild_diagnose}}, use
+#' \code{\link{ild_autoplot}} on the bundle. Backend-specific plots include \code{\link{ild_tvem_plot}},
+#' \code{\link{ild_plot_states}}, \code{\link{ild_plot_forecast}}, and \code{\link{ild_plot_filtered_vs_smoothed}}
+#' (KFAS). See \code{vignette("visualization-in-tidyILD", package = "tidyILD")} for a question-to-function map
+#' and recipes (including partial effects via \strong{marginaleffects} / \strong{ggeffects} on \code{_wp} / \code{_bp} columns).
 #'
 #' @section Vignettes:
 #' \code{browseVignettes("tidyILD")} lists all vignettes. Key entries:
 #' \itemize{
 #'   \item \emph{From raw data to model with tidyILD} --- Full pipeline:
 #'     prepare, inspect, center, lag, fit, diagnose.
+#'   \item \emph{Visualization in tidyILD} --- Index of plots, bundle sections, \code{facet_by},
+#'     predicted trajectories, and partial-effects templates.
 #'   \item \emph{Short analysis report} --- Fit, tidy fixed effects,
 #'     fitted vs observed, residual ACF and Q-Q.
 #'   \item \emph{Within-between decomposition and irregular spacing} ---
 #'     Centering (BP/WP), gap-aware lags, spacing classification.
+#'   \item \emph{Temporal dynamics: choosing a model for ILD} ---
+#'     Maps estimands to lags, residual AR (\code{ild_lme}), time-varying effects (\code{ild_tvem}),
+#'     and state-space backends (\code{ild_kfas}, \code{ild_ctsem}).
+#'   \item \emph{Specialist backends: when to move beyond the default stack} ---
+#'     Handoffs to dynamite, PGEE, DSEM, and multivariate workflows; export patterns after prepare/center/lag.
 #'   \item \emph{Reproducible ILD workflows with tidyILD provenance} ---
 #'     Inspect history, generate methods text, ild_report(), export and compare pipelines.
 #'   \item \emph{Glossary and quick-start checklist} --- Table of main
 #'     functions and a short checklist.
+#'   \item \emph{Heterogeneity and person-specific effects} --- BLUPs vs \code{ild_person_model},
+#'     \code{ild_heterogeneity()}, bundle plots.
+#'   \item \emph{Missingness in ILD: diagnostics and sensitivity routes} ---
+#'     \code{ild_missingness_report()}, MAR/MNAR context, IPW templates.
 #' }
 #'
 #' @section Key concepts:
@@ -87,7 +127,8 @@
 #'     \code{irregular-ish} spacing.
 #'   \item \strong{Person-level:} \code{\link{ild_person_model}} fits models separately
 #'     per participant; \code{\link{ild_person_distribution}} plots the distribution of
-#'     estimates across persons (N-of-1 / idiographic).
+#'     estimates across persons (N-of-1 / idiographic). \code{\link{ild_heterogeneity}} summarizes
+#'     partial-pooling person-specific effects from mixed models (contrasts with no pooling).
 #' }
 #'
 #' @author Alex Litovchenko \email{al4877@columbia.edu}
@@ -95,6 +136,8 @@
 #' @seealso
 #' \code{\link{browseVignettes}} and \code{vignette(package = "tidyILD")} for
 #' vignettes. Core entry points: \code{\link{ild_prepare}}, \code{\link{ild_lme}}.
+#' \code{vignette("ild-specialist-backends", package = "tidyILD")} for using
+#' tidyILD as a preprocessing layer with external multivariate or high-dimensional estimators.
 #' Related packages: \pkg{lme4}, \pkg{nlme} (model backends),
 #' \pkg{broom.mixed} (tidiers).
 #'
@@ -111,4 +154,5 @@
 #'
 #' @docType package
 #' @name tidyILD-package
+#' @importFrom stats fitted predict rstandard
 NULL

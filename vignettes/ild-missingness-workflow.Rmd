@@ -1,0 +1,144 @@
+---
+title: "Missingness in ILD: diagnostics and sensitivity routes"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Missingness in ILD: diagnostics and sensitivity routes}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Why missingness matters in intensive longitudinal data
+
+In EMA and diary studies, missing responses are often **non-ignorable in substance** even when analysts assume **missing at random (MAR)** for estimation: burden, symptom severity, context, or device issues can co-determine both **whether** a prompt is answered and **the outcome**. tidyILD does not replace dedicated missing-data software; it gives **structured diagnostics**, **person-level adherence views**, **time-oriented summaries**, and **hooks** to IPW-based sensitivity workflows already in the package.
+
+**MNAR** (missing not at random) means missingness depends on unobserved values or latent states. No routine plot proves MAR vs MNAR. Use multiple **sensitivity routes** and transparent reporting.
+
+## Types of missingness (useful labels)
+
+- **Unit non-response / attrition:** a person stops contributing (often modeled as **monotone** dropout on the outcome).
+- **Intermittent missingness:** gaps with later observed values again; common in EMA.
+- **Item missingness:** some variables missing while others are observed on the same prompt.
+
+The **ordinal occasion index** `.ild_seq` (from `ild_prepare()`) is the default backbone for “wave” summaries; it is **not** the same as equal calendar spacing—see `vignette("ild-decomposition-and-spacing", package = "tidyILD")` when timing is irregular.
+
+## Descriptive profiling: `ild_missing_pattern()` and heatmaps
+
+`ild_missing_pattern()` tabulates NA rates by variable and by person, and builds a **person × occasion** heatmap (sequence index on the x-axis). Pass `outcome` to **enrich** `by_id` with compliance metrics from `ild_missing_compliance()` (see below).
+
+```{r pattern}
+library(tidyILD)
+set.seed(11)
+d <- ild_simulate(n_id = 25, n_obs_per = 12, seed = 11)
+d$stress <- rnorm(nrow(d))
+d$mood <- d$y
+miss_i <- sample(nrow(d), 45)
+d$mood[miss_i] <- NA
+x <- ild_prepare(d, id = "id", time = "time")
+mp <- ild_missing_pattern(x, vars = c("mood", "stress"), outcome = "mood")
+mp$summary
+head(mp$by_id, 3)
+```
+
+Plot the same view with `ild_plot(x, type = "missingness", var = "mood")` (see `?ild_plot`).
+
+## Person-level compliance: `ild_missing_compliance()`
+
+`tidyILD::ild_missing_compliance()` returns, per `.ild_id`:
+
+- **`pct_nonmissing_outcome`**, **`longest_run_observed`** (longest streak of observed values in time order),
+- **`monotone_missing`**: `TRUE` if, after the first missing outcome, all later values are missing (`NA` if there is no missingness for that person),
+- optional **`expected_occasions`** for rough **adherence vs planned N** (`pct_of_expected`, `meets_expected_rows`).
+
+```{r compliance}
+cm <- ild_missing_compliance(x, outcome = "mood", expected_occasions = 12L)
+summary(cm$pct_nonmissing_outcome)
+```
+
+## When to use `ild_missing_model()` and `ild_missing_bias()`
+
+- **`ild_missing_model()`** fits a **logistic** model for `is.na(outcome)` ~ predictors (pooling `glm` or `glmer` with `random = TRUE`). Use it as a **diagnostic** for whether observed covariates predict missingness, not as proof of MAR.
+- **`ild_missing_bias()`** is a shortcut for **one numeric predictor** vs missingness (teaching / quick screening).
+
+If predictors are associated with missingness, **complete-case summaries** of the outcome can be **biased** even when a mixed model uses all rows—because the **composition** of who contributes at each occasion may shift. Compare descriptive means by missingness pattern only as exploratory, not causal.
+
+## Complete-case vs mixed models (careful wording)
+
+A **linear mixed model** fitted to all available rows uses the **likelihood contribution from observed outcomes** conditional on random effects. Under **MAR** *and* correct **mean and covariance** specification, inference for the **outcome model** can be appropriate while **ignoring** the missingness mechanism (likelihood-based inference). That statement has **scope limits**:
+
+- It concerns **outcome missingness** in the modeled response, not necessarily intermittent **predictor** missingness handled ad hoc.
+- **MNAR** breaks the interpretation; **informative dropout** requires sensitivity analysis.
+- **Complete-case analysis** (drop any person-occasion with missing outcome) changes the estimand when missingness is not MCAR.
+
+tidyILD encourages comparing **descriptives** and **fits** on full vs complete-case data as a **coarse** sensitivity check, not a formal test.
+
+## Cohort-level and hazard summaries
+
+- **`ild_missing_cohort()`**: fraction of non-missing outcomes at each `.ild_seq` plus an optional line plot.
+- **`ild_missing_hazard_first()`**: discrete **hazard** of being missing on the current row among rows **at risk** (previous occasion observed, or first occasion). Under **intermittent** missingness this is a rough **first-event** summary; under **monotone dropout** it aligns better with a discrete-time dropout hazard.
+
+```{r cohort-hazard}
+coh <- ild_missing_cohort(x, outcome = "mood", plot = FALSE)
+head(coh$by_occasion)
+head(ild_missing_hazard_first(x, outcome = "mood"))
+```
+
+## One entry point: `ild_missingness_report()`
+
+`ild_missingness_report()` bundles compliance, `ild_missing_pattern()` (with `outcome` enrichment), cohort and hazard tables, optional `ild_missing_model()`, the same **late-dropout** heuristic used in guardrails (`GR_DROPOUT_LATE_CONCENTRATION`), and short **`snippets`** for methods text.
+
+```{r report}
+rpt <- ild_missingness_report(
+  x,
+  outcome = "mood",
+  predictors = "stress",
+  fit_missing_model = TRUE,
+  random = FALSE,
+  cohort_plot = FALSE
+)
+names(rpt)
+rpt$snippets["overview"]
+```
+
+## MNAR as sensitivity (no single fix)
+
+tidyILD does **not** fit selection models, pattern-mixture models, or joint models for MNAR. Consider external packages and pre-specified sensitivity analyses. The snippets in `ild_missingness_report()` remind readers that logistic missingness models are **diagnostic / sensitivity**, not proof of MAR.
+
+## IPW and causal tools as **one** sensitivity route
+
+If you fit `ild_missing_model()`, you can feed predicted probabilities into **`ild_ipw_weights()`** and **`ild_ipw_refit()`** for inverse-probability weighting (see `?ild_ipw_weights` and causal vignettes). This addresses **observed** confounding of missingness under a **MAR-like** weighting story; it is **not** a blanket MNAR solution.
+
+```{r ipw-template, eval = FALSE}
+mm <- ild_missing_model(x, outcome = "mood", predictors = c("stress"), random = TRUE)
+x_w <- ild_ipw_weights(x, mm, stabilize = TRUE)
+fit_w <- ild_ipw_refit(mood ~ stress + (1 | id), data = x_w, weights = ".ipw")
+```
+
+## Other templates (not evaluated here)
+
+**Compare complete-case vs full mixed model** (same formula):
+
+```{r cc-vs-full, eval = FALSE}
+x_cc <- dplyr::filter(x, !is.na(mood))
+fit_full <- ild_lme(mood ~ stress + (1 | id), data = x, warn_uncentered = FALSE)
+fit_cc <- ild_lme(mood ~ stress + (1 | id), data = x_cc, warn_uncentered = FALSE)
+```
+
+**Multiple imputation outside tidyILD**, then `ild_prepare()` per imputed dataset and pool with **mice** / **mitools** / **brms**—keep the imputation model and substantive model aligned with your estimand.
+
+## What tidyILD does **not** do (and where to look)
+
+- **Full MI pipelines** — **mice**, **Amelia**, **jomo**, etc.
+- **MNAR selection / pattern-mixture** — specialized books and packages; consult a statistician.
+- **Continuous-time event models** for dropout — **survival** / **joint longitudinal-survival** packages.
+- **Replacing** domain knowledge about **why** prompts are missed.
+
+## See also
+
+`vignette("tidyILD-workflow", package = "tidyILD")`, `vignette("msm-identification-and-recovery", package = "tidyILD")`, `?ild_diagnose`, `?ild_missing_pattern`, `?ild_missingness_report`.

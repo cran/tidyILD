@@ -1,0 +1,108 @@
+---
+title: "Temporal dynamics: choosing a model for ILD"
+author: "tidyILD authors"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Temporal dynamics: choosing a model for ILD}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 4
+)
+```
+
+This article is a **decision guide** for **temporal structure**: lags in the mean, residual autocorrelation, time-varying effects, and latent dynamics. It does not replace statistical theory or domain expertise; it maps **scientific questions** to **tidyILD entry points** you already have.
+
+## Three axes before you fit anything
+
+1. **Estimand** — Associational lag effect? Stability of the outcome (lagged outcome in the mean)? Causal effect under a clear identification strategy (see MSM vignettes)? Latent smooth trajectory?
+2. **Spacing** — Occasions are **regular-ish** or **irregular-ish**? See `ild_spacing_class()`, `ild_spacing()`, and `vignette("ild-decomposition-and-spacing", package = "tidyILD")`.
+3. **Where dynamics live** — In the **fixed-effects mean** (e.g. `y ~ x_lag1`), in **residual correlation** (AR1/CAR1 on within-person residuals), in a **smooth over calendar/study time** (`ild_tvem()`), or in a **latent state** (`ild_kfas()`, `ild_ctsem()`).
+
+## Decision flow (conceptual)
+
+The following diagram is a navigation aid (rendered on sites that support Mermaid; otherwise read the labels as a checklist). Source in Mermaid syntax:
+
+    flowchart TD
+      q1[Estimand clear?]
+      spacing[Check ild_spacing_class]
+      meanLag[Lags in mean: ild_lag ild_panel_lag_prepare ild_crosslag]
+      residAR[Residual AR: ild_lme ar1=TRUE]
+      tvem[Effect varies over time: ild_tvem]
+      ct[Continuous-time latent: ild_ctsem]
+      kfas[Discrete-time latent level: ild_kfas]
+      q1 --> spacing
+      spacing --> meanLag
+      spacing --> residAR
+      meanLag --> residAR
+      spacing --> tvem
+      spacing --> ct
+      spacing --> kfas
+
+- **Irregular spacing** makes **index lags** (row order) easy to misinterpret as equal time. Prefer **`gap_aware`** or **`time_window`** in `ild_lag()`, or align to a grid, or use **continuous-time** models when the estimand requires it (`vignette("kfas-irregular-timing-spacing", package = "tidyILD")`).
+- **Residual ACF** after a lag-mean model may indicate **unmodeled autocorrelation**; compare to **`ild_lme(..., ar1 = TRUE)`** (nlme path with AR1 or CAR1 chosen from spacing). See `vignette("temporal-dynamics-model-choice", package = "tidyILD")` guardrails in `ild_diagnose()`.
+
+## Feature map
+
+| Question | tidyILD tools | Backend / notes | Not a substitute for |
+|----------|---------------|-----------------|----------------------|
+| Lagged predictor → outcome | `ild_lag()`, `ild_crosslag()`, `ild_panel_lag_prepare()` | `ild_lme` / `ild_brms` | Full panel VAR / DSEM (multivariate lag system) |
+| Lagged outcome (stability) | Same lag helpers; model `y ~ y_lag1 + ...` carefully | Mixed model | Dynamic structural equation modeling software if that is the estimand |
+| Residual serial correlation | `ild_lme(..., ar1 = TRUE)` | nlme AR1 or CAR1 | Does not add lagged **mean** structure by itself |
+| Effect changes over study time | `ild_tvem()`, `ild_tvem_plot()` | mgcv GAM | Random **slopes over time** per person (consider `ild_brms` recipes) |
+| Discrete-time latent level | `ild_kfas()` | KFAS | Pooled multilevel latent model across many IDs |
+| Continuous-time latent dynamics | `ild_ctsem()` | ctsem / Stan | Quick lag regression on irregular data without CT assumptions |
+| Compare a few fitted models | `ild_compare_fits()` | AIC/BIC where defined | Likelihood-ratio tests unless models are nested and comparable |
+| Multivariate lags / feedback (joint system) | Same lag helpers; `ild_crosslag()` is one equation at a time | Export preprocessed data; see `vignette("ild-specialist-backends", package = "tidyILD")` | dynamite, lavaan DSEM, multivariate brms / ctsem |
+| High-dimensional time-varying predictors (p >> n) | Unpenalized `ild_lme` / `lme4` is not designed for this | Same vignette: hand off to penalized longitudinal tools | PGEE and related methods |
+
+## Minimal examples
+
+```{r minimal-crosslag}
+library(tidyILD)
+set.seed(1)
+d <- ild_simulate(n_id = 12, n_obs_per = 10, seed = 1)
+x <- ild_prepare(d, id = "id", time = "time")
+out <- ild_crosslag(x, y, y, lag = 1L, ar1 = FALSE, warn_no_ar1 = FALSE)
+out$lag_term[, c("term", "estimate", "std_error")]
+```
+
+```{r minimal-ar1, eval = requireNamespace("nlme", quietly = TRUE)}
+x2 <- ild_center(x, y)
+fit_ar <- tryCatch(
+  ild_lme(y ~ y_bp + y_wp, data = x2, ar1 = TRUE, warn_no_ar1 = FALSE, warn_uncentered = FALSE),
+  error = function(e) NULL
+)
+if (!is.null(fit_ar)) {
+  print(fit_ar)
+} else {
+  "nlme fit skipped on this platform"
+}
+```
+
+```{r minimal-tvem}
+x3 <- ild_simulate(n_id = 10, n_obs_per = 15, seed = 2)
+x3$x <- rnorm(nrow(x3))
+x3 <- ild_prepare(x3, id = "id", time = "time")
+tv <- ild_tvem(x3, "y", "x", k = 5, re_id = TRUE)
+summary(tv)
+```
+
+## Further reading
+
+- `vignette("tidyILD-workflow", package = "tidyILD")`
+- `vignette("ild-specialist-backends", package = "tidyILD")` (multivariate / high-p handoffs)
+- `vignette("kfas-choosing-backend", package = "tidyILD")`
+- `vignette("brms-dynamics-recipes", package = "tidyILD")` (Bayesian templates)
+- `vignette("heterogeneity-interpretation", package = "tidyILD")` (person-specific slopes vs dynamics)
+
+```{r session-info, echo = FALSE}
+sessionInfo()
+```

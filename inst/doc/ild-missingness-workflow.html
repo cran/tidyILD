@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Missingness in ILD: diagnostics and sensitivity routes</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Missingness in ILD: diagnostics and
+sensitivity routes</h1>
+
+
+
+<div id="why-missingness-matters-in-intensive-longitudinal-data" class="section level2">
+<h2>Why missingness matters in intensive longitudinal data</h2>
+<p>In EMA and diary studies, missing responses are often
+<strong>non-ignorable in substance</strong> even when analysts assume
+<strong>missing at random (MAR)</strong> for estimation: burden, symptom
+severity, context, or device issues can co-determine both
+<strong>whether</strong> a prompt is answered and <strong>the
+outcome</strong>. tidyILD does not replace dedicated missing-data
+software; it gives <strong>structured diagnostics</strong>,
+<strong>person-level adherence views</strong>, <strong>time-oriented
+summaries</strong>, and <strong>hooks</strong> to IPW-based sensitivity
+workflows already in the package.</p>
+<p><strong>MNAR</strong> (missing not at random) means missingness
+depends on unobserved values or latent states. No routine plot proves
+MAR vs MNAR. Use multiple <strong>sensitivity routes</strong> and
+transparent reporting.</p>
+</div>
+<div id="types-of-missingness-useful-labels" class="section level2">
+<h2>Types of missingness (useful labels)</h2>
+<ul>
+<li><strong>Unit non-response / attrition:</strong> a person stops
+contributing (often modeled as <strong>monotone</strong> dropout on the
+outcome).</li>
+<li><strong>Intermittent missingness:</strong> gaps with later observed
+values again; common in EMA.</li>
+<li><strong>Item missingness:</strong> some variables missing while
+others are observed on the same prompt.</li>
+</ul>
+<p>The <strong>ordinal occasion index</strong> <code>.ild_seq</code>
+(from <code>ild_prepare()</code>) is the default backbone for “wave”
+summaries; it is <strong>not</strong> the same as equal calendar
+spacing—see
+<code>vignette(&quot;ild-decomposition-and-spacing&quot;, package = &quot;tidyILD&quot;)</code>
+when timing is irregular.</p>
+</div>
+<div id="descriptive-profiling-ild_missing_pattern-and-heatmaps" class="section level2">
+<h2>Descriptive profiling: <code>ild_missing_pattern()</code> and
+heatmaps</h2>
+<p><code>ild_missing_pattern()</code> tabulates NA rates by variable and
+by person, and builds a <strong>person × occasion</strong> heatmap
+(sequence index on the x-axis). Pass <code>outcome</code> to
+<strong>enrich</strong> <code>by_id</code> with compliance metrics from
+<code>ild_missing_compliance()</code> (see below).</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(tidyILD)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">11</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>d <span class="ot">&lt;-</span> <span class="fu">ild_simulate</span>(<span class="at">n_id =</span> <span class="dv">25</span>, <span class="at">n_obs_per =</span> <span class="dv">12</span>, <span class="at">seed =</span> <span class="dv">11</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>d<span class="sc">$</span>stress <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="fu">nrow</span>(d))</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>d<span class="sc">$</span>mood <span class="ot">&lt;-</span> d<span class="sc">$</span>y</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>miss_i <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="fu">nrow</span>(d), <span class="dv">45</span>)</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>d<span class="sc">$</span>mood[miss_i] <span class="ot">&lt;-</span> <span class="cn">NA</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">ild_prepare</span>(d, <span class="at">id =</span> <span class="st">&quot;id&quot;</span>, <span class="at">time =</span> <span class="st">&quot;time&quot;</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>mp <span class="ot">&lt;-</span> <span class="fu">ild_missing_pattern</span>(x, <span class="at">vars =</span> <span class="fu">c</span>(<span class="st">&quot;mood&quot;</span>, <span class="st">&quot;stress&quot;</span>), <span class="at">outcome =</span> <span class="st">&quot;mood&quot;</span>)</span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>mp<span class="sc">$</span>summary</span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a><span class="co">#&gt; # A tibble: 2 × 4</span></span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a><span class="co">#&gt;   var    n_obs  n_na pct_na</span></span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;  &lt;int&gt; &lt;int&gt;  &lt;dbl&gt;</span></span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a><span class="co">#&gt; 1 mood     300    45     15</span></span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a><span class="co">#&gt; 2 stress   300     0      0</span></span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a><span class="fu">head</span>(mp<span class="sc">$</span>by_id, <span class="dv">3</span>)</span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 10</span></span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a><span class="co">#&gt;   .ild_id mood_n_obs mood_n_na stress_n_obs stress_n_na n_rows n_obs_outcome</span></span>
+<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a><span class="co">#&gt;     &lt;int&gt;      &lt;int&gt;     &lt;int&gt;        &lt;int&gt;       &lt;int&gt;  &lt;int&gt;         &lt;int&gt;</span></span>
+<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a><span class="co">#&gt; 1       1         10         2           12           0     12            10</span></span>
+<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a><span class="co">#&gt; 2       2          9         3           12           0     12             9</span></span>
+<span id="cb1-22"><a href="#cb1-22" tabindex="-1"></a><span class="co">#&gt; 3       3         11         1           12           0     12            11</span></span>
+<span id="cb1-23"><a href="#cb1-23" tabindex="-1"></a><span class="co">#&gt; # ℹ 3 more variables: pct_nonmissing_outcome &lt;dbl&gt;, longest_run_observed &lt;int&gt;,</span></span>
+<span id="cb1-24"><a href="#cb1-24" tabindex="-1"></a><span class="co">#&gt; #   monotone_missing &lt;lgl&gt;</span></span></code></pre></div>
+<p>Plot the same view with
+<code>ild_plot(x, type = &quot;missingness&quot;, var = &quot;mood&quot;)</code> (see
+<code>?ild_plot</code>).</p>
+</div>
+<div id="person-level-compliance-ild_missing_compliance" class="section level2">
+<h2>Person-level compliance: <code>ild_missing_compliance()</code></h2>
+<p><code>tidyILD::ild_missing_compliance()</code> returns, per
+<code>.ild_id</code>:</p>
+<ul>
+<li><strong><code>pct_nonmissing_outcome</code></strong>,
+<strong><code>longest_run_observed</code></strong> (longest streak of
+observed values in time order),</li>
+<li><strong><code>monotone_missing</code></strong>: <code>TRUE</code>
+if, after the first missing outcome, all later values are missing
+(<code>NA</code> if there is no missingness for that person),</li>
+<li>optional <strong><code>expected_occasions</code></strong> for rough
+<strong>adherence vs planned N</strong> (<code>pct_of_expected</code>,
+<code>meets_expected_rows</code>).</li>
+</ul>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>cm <span class="ot">&lt;-</span> <span class="fu">ild_missing_compliance</span>(x, <span class="at">outcome =</span> <span class="st">&quot;mood&quot;</span>, <span class="at">expected_occasions =</span> <span class="dv">12</span><span class="dt">L</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">summary</span>(cm<span class="sc">$</span>pct_nonmissing_outcome)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt;   58.33   83.33   83.33   85.00   91.67  100.00</span></span></code></pre></div>
+</div>
+<div id="when-to-use-ild_missing_model-and-ild_missing_bias" class="section level2">
+<h2>When to use <code>ild_missing_model()</code> and
+<code>ild_missing_bias()</code></h2>
+<ul>
+<li><strong><code>ild_missing_model()</code></strong> fits a
+<strong>logistic</strong> model for <code>is.na(outcome)</code> ~
+predictors (pooling <code>glm</code> or <code>glmer</code> with
+<code>random = TRUE</code>). Use it as a <strong>diagnostic</strong> for
+whether observed covariates predict missingness, not as proof of
+MAR.</li>
+<li><strong><code>ild_missing_bias()</code></strong> is a shortcut for
+<strong>one numeric predictor</strong> vs missingness (teaching / quick
+screening).</li>
+</ul>
+<p>If predictors are associated with missingness, <strong>complete-case
+summaries</strong> of the outcome can be <strong>biased</strong> even
+when a mixed model uses all rows—because the
+<strong>composition</strong> of who contributes at each occasion may
+shift. Compare descriptive means by missingness pattern only as
+exploratory, not causal.</p>
+</div>
+<div id="complete-case-vs-mixed-models-careful-wording" class="section level2">
+<h2>Complete-case vs mixed models (careful wording)</h2>
+<p>A <strong>linear mixed model</strong> fitted to all available rows
+uses the <strong>likelihood contribution from observed outcomes</strong>
+conditional on random effects. Under <strong>MAR</strong> <em>and</em>
+correct <strong>mean and covariance</strong> specification, inference
+for the <strong>outcome model</strong> can be appropriate while
+<strong>ignoring</strong> the missingness mechanism (likelihood-based
+inference). That statement has <strong>scope limits</strong>:</p>
+<ul>
+<li>It concerns <strong>outcome missingness</strong> in the modeled
+response, not necessarily intermittent <strong>predictor</strong>
+missingness handled ad hoc.</li>
+<li><strong>MNAR</strong> breaks the interpretation; <strong>informative
+dropout</strong> requires sensitivity analysis.</li>
+<li><strong>Complete-case analysis</strong> (drop any person-occasion
+with missing outcome) changes the estimand when missingness is not
+MCAR.</li>
+</ul>
+<p>tidyILD encourages comparing <strong>descriptives</strong> and
+<strong>fits</strong> on full vs complete-case data as a
+<strong>coarse</strong> sensitivity check, not a formal test.</p>
+</div>
+<div id="cohort-level-and-hazard-summaries" class="section level2">
+<h2>Cohort-level and hazard summaries</h2>
+<ul>
+<li><strong><code>ild_missing_cohort()</code></strong>: fraction of
+non-missing outcomes at each <code>.ild_seq</code> plus an optional line
+plot.</li>
+<li><strong><code>ild_missing_hazard_first()</code></strong>: discrete
+<strong>hazard</strong> of being missing on the current row among rows
+<strong>at risk</strong> (previous occasion observed, or first
+occasion). Under <strong>intermittent</strong> missingness this is a
+rough <strong>first-event</strong> summary; under <strong>monotone
+dropout</strong> it aligns better with a discrete-time dropout
+hazard.</li>
+</ul>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>coh <span class="ot">&lt;-</span> <span class="fu">ild_missing_cohort</span>(x, <span class="at">outcome =</span> <span class="st">&quot;mood&quot;</span>, <span class="at">plot =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">head</span>(coh<span class="sc">$</span>by_occasion)</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 4</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt;   .ild_seq n_rows n_obs pct_observed</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt;      &lt;int&gt;  &lt;int&gt; &lt;int&gt;        &lt;dbl&gt;</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; 1        1     25    23           92</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; 2        2     25    21           84</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; 3        3     25    21           84</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; 4        4     25    24           96</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; 5        5     25    19           76</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt; 6        6     25    21           84</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">ild_missing_hazard_first</span>(x, <span class="at">outcome =</span> <span class="st">&quot;mood&quot;</span>))</span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 4</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt;   .ild_seq n_at_risk n_missing hazard</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt;      &lt;int&gt;     &lt;int&gt;     &lt;int&gt;  &lt;dbl&gt;</span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="co">#&gt; 1        1        25         2 0.08  </span></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="co">#&gt; 2        2        23         3 0.130 </span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a><span class="co">#&gt; 3        3        21         2 0.0952</span></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a><span class="co">#&gt; 4        4        21         0 0     </span></span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a><span class="co">#&gt; 5        5        24         5 0.208 </span></span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a><span class="co">#&gt; 6        6        19         3 0.158</span></span></code></pre></div>
+</div>
+<div id="one-entry-point-ild_missingness_report" class="section level2">
+<h2>One entry point: <code>ild_missingness_report()</code></h2>
+<p><code>ild_missingness_report()</code> bundles compliance,
+<code>ild_missing_pattern()</code> (with <code>outcome</code>
+enrichment), cohort and hazard tables, optional
+<code>ild_missing_model()</code>, the same <strong>late-dropout</strong>
+heuristic used in guardrails
+(<code>GR_DROPOUT_LATE_CONCENTRATION</code>), and short
+<strong><code>snippets</code></strong> for methods text.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>rpt <span class="ot">&lt;-</span> <span class="fu">ild_missingness_report</span>(</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  x,</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="at">outcome =</span> <span class="st">&quot;mood&quot;</span>,</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="at">predictors =</span> <span class="st">&quot;stress&quot;</span>,</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  <span class="at">fit_missing_model =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>  <span class="at">random =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>  <span class="at">cohort_plot =</span> <span class="cn">FALSE</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>)</span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="fu">names</span>(rpt)</span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt; [1] &quot;compliance&quot;    &quot;pattern&quot;       &quot;cohort&quot;        &quot;hazard&quot;       </span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt; [5] &quot;flags&quot;         &quot;missing_model&quot; &quot;snippets&quot;</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>rpt<span class="sc">$</span>snippets[<span class="st">&quot;overview&quot;</span>]</span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt;                                                                                                                                                                                                                 overview </span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co">#&gt; &quot;Outcome mood was summarized with tidyILD person-level compliance, cohort observed fractions by occasion (.ild_seq), and a discrete-time hazard of first missing row (ordinal schedule; see ?ild_missing_hazard_first).&quot;</span></span></code></pre></div>
+</div>
+<div id="mnar-as-sensitivity-no-single-fix" class="section level2">
+<h2>MNAR as sensitivity (no single fix)</h2>
+<p>tidyILD does <strong>not</strong> fit selection models,
+pattern-mixture models, or joint models for MNAR. Consider external
+packages and pre-specified sensitivity analyses. The snippets in
+<code>ild_missingness_report()</code> remind readers that logistic
+missingness models are <strong>diagnostic / sensitivity</strong>, not
+proof of MAR.</p>
+</div>
+<div id="ipw-and-causal-tools-as-one-sensitivity-route" class="section level2">
+<h2>IPW and causal tools as <strong>one</strong> sensitivity route</h2>
+<p>If you fit <code>ild_missing_model()</code>, you can feed predicted
+probabilities into <strong><code>ild_ipw_weights()</code></strong> and
+<strong><code>ild_ipw_refit()</code></strong> for inverse-probability
+weighting (see <code>?ild_ipw_weights</code> and causal vignettes). This
+addresses <strong>observed</strong> confounding of missingness under a
+<strong>MAR-like</strong> weighting story; it is <strong>not</strong> a
+blanket MNAR solution.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>mm <span class="ot">&lt;-</span> <span class="fu">ild_missing_model</span>(x, <span class="at">outcome =</span> <span class="st">&quot;mood&quot;</span>, <span class="at">predictors =</span> <span class="fu">c</span>(<span class="st">&quot;stress&quot;</span>), <span class="at">random =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>x_w <span class="ot">&lt;-</span> <span class="fu">ild_ipw_weights</span>(x, mm, <span class="at">stabilize =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>fit_w <span class="ot">&lt;-</span> <span class="fu">ild_ipw_refit</span>(mood <span class="sc">~</span> stress <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> id), <span class="at">data =</span> x_w, <span class="at">weights =</span> <span class="st">&quot;.ipw&quot;</span>)</span></code></pre></div>
+</div>
+<div id="other-templates-not-evaluated-here" class="section level2">
+<h2>Other templates (not evaluated here)</h2>
+<p><strong>Compare complete-case vs full mixed model</strong> (same
+formula):</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>x_cc <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(x, <span class="sc">!</span><span class="fu">is.na</span>(mood))</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>fit_full <span class="ot">&lt;-</span> <span class="fu">ild_lme</span>(mood <span class="sc">~</span> stress <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> id), <span class="at">data =</span> x, <span class="at">warn_uncentered =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>fit_cc <span class="ot">&lt;-</span> <span class="fu">ild_lme</span>(mood <span class="sc">~</span> stress <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> id), <span class="at">data =</span> x_cc, <span class="at">warn_uncentered =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<p><strong>Multiple imputation outside tidyILD</strong>, then
+<code>ild_prepare()</code> per imputed dataset and pool with
+<strong>mice</strong> / <strong>mitools</strong> /
+<strong>brms</strong>—keep the imputation model and substantive model
+aligned with your estimand.</p>
+</div>
+<div id="what-tidyild-does-not-do-and-where-to-look" class="section level2">
+<h2>What tidyILD does <strong>not</strong> do (and where to look)</h2>
+<ul>
+<li><strong>Full MI pipelines</strong> — <strong>mice</strong>,
+<strong>Amelia</strong>, <strong>jomo</strong>, etc.</li>
+<li><strong>MNAR selection / pattern-mixture</strong> — specialized
+books and packages; consult a statistician.</li>
+<li><strong>Continuous-time event models</strong> for dropout —
+<strong>survival</strong> / <strong>joint longitudinal-survival</strong>
+packages.</li>
+<li><strong>Replacing</strong> domain knowledge about
+<strong>why</strong> prompts are missed.</li>
+</ul>
+</div>
+<div id="see-also" class="section level2">
+<h2>See also</h2>
+<p><code>vignette(&quot;tidyILD-workflow&quot;, package = &quot;tidyILD&quot;)</code>,
+<code>vignette(&quot;msm-identification-and-recovery&quot;, package = &quot;tidyILD&quot;)</code>,
+<code>?ild_diagnose</code>, <code>?ild_missing_pattern</code>,
+<code>?ild_missingness_report</code>.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -34,10 +34,16 @@ and class \code{tidyild_model} for polished printing (default \code{FALSE}).}
 A tibble, or when \code{object = TRUE} a list of class \code{tidyild_model}.
 }
 \description{
-Returns a tibble of fixed-effect estimates with consistent columns for both
-lmer and lme engines: \code{term}, \code{estimate}, \code{std_error},
-\code{ci_low}, \code{ci_high}, \code{p_value}. With \code{object = TRUE},
-returns an object of class \code{tidyild_model} (meta + table) for use with
+Returns a tibble conforming to \code{\link{ild_tidy_schema}}: required columns include
+\code{term}, \code{component}, \code{effect_level}, \code{estimate}, \code{std_error},
+\code{conf_low}, \code{conf_high}, \code{statistic}, \code{p_value}, \code{interval_type},
+\code{engine}, \code{model_class}; optional Bayesian columns are \code{NA} for these engines.
+\code{component} is \code{"fixed"} for coefficient rows; \code{effect_level} is inferred
+conservatively from term names (e.g. \verb{_wp}/\verb{_bp} suffixes) or \code{"population"}
+for the intercept, \code{"unknown"} when ambiguous.
+}
+\details{
+With \code{object = TRUE}, returns an object of class \code{tidyild_model} (meta + table) for use with
 \code{print.tidyild_model}.
 }
 \section{Model-based vs robust SE}{
@@ -45,6 +51,9 @@ returns an object of class \code{tidyild_model} (meta + table) for use with
 With \code{se = "model"} (default), standard errors and CIs come from the fitted
 model. With \code{se = "robust"}, cluster-robust (sandwich) SEs are used;
 CIs and p-values are based on a Wald normal approximation. Install the
-\pkg{clubSandwich} package to use robust SEs.
+\pkg{clubSandwich} package to use robust SEs. For **IPW / MSM** weighted \code{lmer}
+fits ([ild_ipw_refit()]), robust SEs do not account for estimated weights; use
+[ild_msm_bootstrap()] and [tidy_ild_msm_bootstrap()] when you need bootstrap CIs;
+see [ild_msm_inference].
 }
 

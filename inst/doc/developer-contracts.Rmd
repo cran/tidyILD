@@ -1,0 +1,36 @@
+---
+title: "Developer contracts (package standards)"
+description: >
+  Internal specification for the diagnostics bundle, tidy/augment schemas, and backend adapters.
+  Normative text is maintained in `inst/dev/DEVELOPER_CONTRACTS.md`.
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Developer contracts (package standards)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+md_path <- if (file.exists("../inst/dev/DEVELOPER_CONTRACTS.md")) {
+  "../inst/dev/DEVELOPER_CONTRACTS.md"
+} else {
+  system.file("dev", "DEVELOPER_CONTRACTS.md", package = "tidyILD")
+}
+```
+
+This vignette embeds the **developer contract** shipped with the package.
+Use it when adding engines (KFAS, ctsem, …) or evolving `ild_tidy()` / `ild_augment()` / `ild_diagnose()`.
+For a **code skeleton** (S3 stubs, bundle assembly, guardrails, provenance, tests), see `inst/dev/backend-adapter-template.R` in the source tree.
+
+```{r contracts, results='asis'}
+if (!nzchar(md_path) || !file.exists(md_path)) {
+  stop("DEVELOPER_CONTRACTS.md not found; expected inst/dev/DEVELOPER_CONTRACTS.md", call. = FALSE)
+}
+cat(knitr::knit_child(md_path, quiet = TRUE))
+```
+
+## See also
+
+- `help(ild_diagnostics_bundle)`, `help(ild_tidy_schema)`, `help(ild_augment_schema)`, `help(guardrail_registry)`.
+- User-facing short mirror: `system.file("CONTRACTS.md", package = "tidyILD")` (if installed from source with `inst/`).

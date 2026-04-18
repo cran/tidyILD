@@ -1,0 +1,62 @@
+---
+title: "Choosing between lme/nlme, brms, KFAS, and ctsem"
+author: "Alex Litovchenko"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Choosing between lme/nlme, brms, KFAS, and ctsem}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 4
+)
+```
+
+This vignette is a **decision guide**, not a technical deep dive. Use it to pick an entry point:
+
+- **`ild_lme()`** when the main need is **multilevel regression** with **residual** temporal correlation (AR1/CAR1, random effects).
+- **`ild_brms()`** when **uncertainty**, **priors**, and **Bayesian partial pooling** across persons matter most.
+- **`ild_kfas()`** when the target is **discrete-time** latent temporal state estimation (single series per fit).
+- **`ild_ctsem()`** when the target is **continuous-time latent dynamics** under irregular measurement timing.
+
+## Decision axes
+
+Ask:
+
+1. **Population vs single-series focus** — Do you need **inference for a population** of persons (fixed/random effects, WP/BP) or a **structured model for one** long series (latent level/trend)?
+2. **Multilevel vs state-space** — Is the scientific target **between- and within-person** structure with **residual** temporal correlation, or **explicit latent dynamics** (Kalman smoothing/filtering) for one trajectory?
+3. **Frequentist vs Bayesian** — `ild_lme()` / **nlme** vs **`ild_brms()`** (Stan); **KFAS** in tidyILD is **likelihood / ML**-oriented for the wrapped fits.
+4. **Diagnostics** — Frequentist/brms: `ild_diagnostics()` / bundle from `ild_diagnose()` for standard models; **KFAS**: `ild_diagnose()` emphasizes **innovations**, ACF, and bundle sections tuned for **state space** (see `?ild_diagnose`).
+
+## Comparison table
+
+| | **`ild_lme()`** (lme4 / nlme) | **`ild_brms()`** | **`ild_kfas()`** (KFAS) | **`ild_ctsem()`** (ctsem) |
+|---|---|---|---|---|
+| **Typical use** | Multilevel regression, AR1/CAR1 on residuals | Hierarchical Bayes, flexible priors | Univariate latent level (v1), single `.ild_id` per fit | Continuous-time latent dynamics with irregular timing |
+| **ID structure** | Multiple `.ild_id`, random effects | Multiple `.ild_id`, partial pooling | One person per fit (v1); not pooled latent state across IDs | v1 wrapper is conservative (single-series focus) |
+| **Temporal structure** | Residual AR1/CAR1; spacing-informed choice | Flexible time / residual modeling | Discrete-time local level on observation order | Continuous-time drift/diffusion parameterization |
+| **Priors** | N/A (frequentist) | Yes (user-specified) | Implicit via likelihood / ML | Depends on ctsem fit mode (`ctStanFit` / `ctFit`) |
+| **Predictive checks** | Via bundle / extensions | PPC via **brms** (`pp_check`) | Forecast / innovation plots (not PPC); see `ild_autoplot(bundle)` for KFAS | Bundle diagnostics + ctsem residual/fitted views |
+| **Provenance / report** | `ild_provenance`, `ild_report` | Same | Same; KFAS stores state spec, smoothing, `fit_context` | Same; ctsem fit type and scaling recorded |
+
+**Important:** `ild_kfas()` is **not** a drop-in replacement for a **multilevel** model with person-level random effects. If you fit **separate** state-space models per person, use **`fit_context = "independent_series_per_id"`** when that matches your design and read **`GR_KFAS_UNMODELED_BETWEEN_PERSON_HETEROGENEITY`** and related guardrails.
+
+## Short pointers to other vignettes
+
+- **Temporal dynamics and model choice (lags, AR, TVEM vs latent):** `vignette("temporal-dynamics-model-choice", package = "tidyILD")`
+- **Overall workflow:** `vignette("tidyILD-workflow", package = "tidyILD")`
+- **Report-style analysis:** `vignette("ild-analysis-report", package = "tidyILD")`
+- **State-space concepts (KFAS):** `vignette("kfas-state-space-modeling", package = "tidyILD")`
+- **Irregular timing + KFAS:** `vignette("kfas-irregular-timing-spacing", package = "tidyILD")`
+- **Continuous-time ctsem backend:** `vignette("ctsem-continuous-time-dynamics", package = "tidyILD")`
+- **Spacing and WP/BP:** `vignette("ild-decomposition-and-spacing", package = "tidyILD")`
+
+## See also
+
+`inst/dev/KFAS_V1_BACKEND.md` (backend scope), `?ild_kfas`, `?ild_ctsem`, `?ild_lme`, `?ild_brms`.

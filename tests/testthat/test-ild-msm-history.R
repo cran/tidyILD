@@ -1,0 +1,20 @@
+test_that("ild_msm_history_spec validates inputs", {
+  expect_error(ild_msm_history_spec(vars = character()), "vars")
+  s <- ild_msm_history_spec(vars = c("a", "b"), lags = c(1, 2))
+  expect_s3_class(s, "ild_msm_history_spec")
+  expect_equal(s$lags, c(1L, 2L))
+})
+
+test_that("ild_build_msm_history creates deterministic lag columns + manifest", {
+  set.seed(2101)
+  d <- ild_simulate(n_id = 6, n_obs_per = 5, seed = 2101)
+  d$stress <- rnorm(nrow(d))
+  d$trt <- as.integer(stats::rbinom(nrow(d), 1L, 0.4))
+  d <- ild_prepare(d, id = "id", time = "time")
+  hs <- ild_msm_history_spec(vars = c("stress", "trt"), lags = 1:2)
+  x <- ild_build_msm_history(d, hs)
+  expect_true(all(c("stress_lag1", "stress_lag2", "trt_lag1", "trt_lag2") %in% names(x)))
+  mf <- attr(x, "ild_msm_history_manifest", exact = TRUE)
+  expect_s3_class(mf, "tbl_df")
+  expect_equal(nrow(mf), 4L)
+})

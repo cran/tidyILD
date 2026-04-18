@@ -7,12 +7,13 @@
 ild_plot(
   x,
   type = c("trajectory", "heatmap", "gaps", "missingness", "fitted", "fitted_vs_actual",
-    "residual_acf"),
+    "predicted_trajectory", "residual_acf"),
   var = NULL,
   id_var = ".ild_id",
   time_var = c(".ild_time_num", ".ild_seq"),
   max_ids = 20L,
   seed = 42L,
+  facet_by = NULL,
   ...
 )
 }
@@ -21,6 +22,7 @@ ild_plot(
 
 \item{type}{Character (or vector). One or more of: `"trajectory"`, `"heatmap"`,
 `"gaps"`, `"missingness"`, `"fitted"` or `"fitted_vs_actual"` (requires fitted model),
+`"predicted_trajectory"` (observed and fitted lines vs time; requires fitted model),
 `"residual_acf"` (requires fitted model; ACF is over observation sequence, not adjusted for
 irregular time gaps). If length > 1, returns a named list of ggplots.}
 
@@ -29,12 +31,15 @@ if missing and only one non-.ild_* column exists, it is used).}
 
 \item{id_var}{For trajectory, variable used for grouping (default `.ild_id`).}
 
-\item{time_var}{For trajectory/gaps, x-axis: `.ild_time_num` or `.ild_seq`.}
+\item{time_var}{For trajectory/gaps/`predicted_trajectory`, x-axis: `.ild_time_num` or `.ild_seq`.}
 
-\item{max_ids}{For trajectory, max number of persons to plot (sampled if
+\item{max_ids}{For trajectory and `predicted_trajectory`, max number of persons to plot (sampled if
 larger; default 20). Set to `Inf` to plot all.}
 
 \item{seed}{Integer. Seed for sampling ids when `max_ids` is set (default 42).}
+
+\item{facet_by}{Optional character: name of a column in the ILD (e.g. cluster or site) to pass to
+[ggplot2::facet_wrap()] for `trajectory`, `heatmap`, `gaps`, and `predicted_trajectory`.}
 
 \item{...}{Unused.}
 }

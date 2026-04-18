@@ -39,6 +39,17 @@ covariates. Use as a diagnostic; then [ild_ipw_weights()] to compute
 inverse-probability weights and [ild_ipw_refit()] for a sensitivity analysis.
 This is not a full MNAR solution—treat as diagnostic and sensitivity tooling.
 }
+\details{
+**Not** run automatically by [ild_diagnose()]; it is the usual prerequisite for
+[ild_ipw_weights()] when you want IPW summaries in the bundle (see [ild_diagnostics_utilities]).
+}
+\section{Bundle integration}{
+
+There is no separate \dQuote{missingness model} slot on the bundle. This function
+supports the IPW workflow; after [ild_ipw_weights()], [ild_diagnose()] can summarize
+weights in \code{causal} on \code{\link{ild_diagnostics_bundle}}.
+}
+
 \examples{
 set.seed(1)
 d <- ild_simulate(n_id = 15, n_obs_per = 8, seed = 1)
@@ -49,3 +60,20 @@ x <- ild_prepare(d, id = "id", time = "time")
 mm <- ild_missing_model(x, "mood", "stress")
 mm$tidy
 }
+\seealso{
+[ild_diagnose()], [ild_diagnostics_bundle()], [ild_ipw_weights()]
+
+Other ild_diagnostics_utilities: 
+\code{\link{ild_design_check}()},
+\code{\link{ild_ipcw_weights}()},
+\code{\link{ild_iptw_msm_weights}()},
+\code{\link{ild_iptw_weights}()},
+\code{\link{ild_ipw_weights}()},
+\code{\link{ild_joint_msm_weights}()},
+\code{\link{ild_missing_cohort}()},
+\code{\link{ild_missing_compliance}()},
+\code{\link{ild_missing_hazard_first}()},
+\code{\link{ild_missing_pattern}()},
+\code{\link{ild_missingness_report}()}
+}
+\concept{ild_diagnostics_utilities}

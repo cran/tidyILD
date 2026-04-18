@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "description": "Lenient gates for smoke-tier benchmarks (small n_sim, Monte Carlo noise).",
+  "defaults": {
+    "min_coverage": 0.5,
+    "max_convergence_failure_rate": 0.85,
+    "min_n_converged": 1
+  },
+  "by_backend": {
+    "brms": { "warn_only": true },
+    "nlme": { "warn_only": true },
+    "ctsem": { "warn_only": true },
+    "kfas": { "warn_only": true }
+  },
+  "by_scenario": {
+    "mlm_power_ri": {
+      "min_coverage": 0.45,
+      "max_convergence_failure_rate": 0.8
+    },
+    "kfas_local_level": {
+      "max_convergence_failure_rate": 0.99
+    }
+  }
+}

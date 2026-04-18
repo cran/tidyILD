@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "description": "Stricter gates for nightly-tier benchmarks.",
+  "defaults": {
+    "min_coverage": 0.65,
+    "max_convergence_failure_rate": 0.35,
+    "min_n_converged": 3
+  },
+  "by_backend": {
+    "brms": { "warn_only": true, "min_coverage": 0.55 },
+    "ctsem": { "warn_only": true, "max_convergence_failure_rate": 0.6 },
+    "kfas": { "warn_only": false }
+  },
+  "by_scenario": {
+    "mlm_power_ri": {
+      "min_coverage": 0.7,
+      "max_convergence_failure_rate": 0.3
+    },
+    "kfas_local_level": {
+      "max_convergence_failure_rate": 0.25
+    },
+    "ctsem_univariate": {
+      "warn_only": true,
+      "max_convergence_failure_rate": 0.5
+    }
+  }
+}

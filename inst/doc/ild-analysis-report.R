@@ -5,6 +5,7 @@ knitr::opts_chunk$set(
   fig.width = 6,
   fig.height = 4
 )
+fit_ar1 <- NULL
 
 ## ----fit----------------------------------------------------------------------
 library(tidyILD)

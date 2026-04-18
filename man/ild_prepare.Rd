@@ -6,17 +6,31 @@
 \usage{
 ild_prepare(
   data,
-  id,
-  time,
+  id = NULL,
+  time = NULL,
   gap_threshold = Inf,
   duplicate_handling = c("first", "last", "error", "collapse"),
   collapse_fn = NULL
 )
 }
 \arguments{
-\item{data}{A data frame or tibble with at least an id and a time column.}
+\item{data}{A data frame or tibble with at least an id and a time column.
+  If \code{id} and \code{time} are both omitted, \code{data} must be a
+  \code{tbl_ts} from \pkg{tsibble} (requires a single key column and an index);
+  key and index names are inferred (see [ild_as_tsibble()] for the reverse).
 
-\item{id}{Character. Name of the subject/unit identifier column.}
+  \strong{Tsibble interoperability:} Accepting a \code{tbl_ts} is an input
+  convenience; the result is always a plain ILD tibble (the \code{tbl_ts} class
+  is dropped). Metadata from the source tsibble (key, index, interval summary,
+  regularity) is stored in \code{attr(x, "tidyILD")$tsibble} when available;
+  use [ild_tsibble_meta()] to read it. Use [ild_as_tsibble()] for a
+  best-effort round-trip. \strong{Conceptual choice (keys):} ILD uses one
+  subject identifier per row; \code{tbl_ts} must have exactly one key
+  column. Compound keys are not supported—combine levels into a single id
+  column before calling \code{ild_prepare()}.}
+
+\item{id}{Character. Name of the subject/unit identifier column. Omit both
+\code{id} and \code{time} when \code{data} is a tsibble (see above).}
 
 \item{time}{Character. Name of the time column (Date, POSIXct, or numeric).}
 
@@ -43,4 +57,8 @@ An ILD tibble with `.ild_*` columns and metadata attributes.
 Validates and encodes longitudinal structure: parses time, sorts by id and
 time, handles duplicate timestamps, and adds internal columns (`.ild_*`)
 and metadata. All downstream functions assume the result of `ild_prepare()`.
+}
+\seealso{
+\href{../doc/tsibble-interoperability.html}{\code{vignette("tsibble-interoperability", package = "tidyILD")}}
+  (tsibble ingestion, provenance, \code{ild_as_tsibble()}).
 }

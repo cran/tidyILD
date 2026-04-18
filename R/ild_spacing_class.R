@@ -10,6 +10,10 @@
 #' @param pct_gap_threshold Numeric. Percent of intervals flagged as gaps
 #'   above which spacing is "irregular-ish" (default 10).
 #' @return Character: `"regular-ish"` or `"irregular-ish"`.
+#' @seealso
+#' \href{../doc/kfas-irregular-timing-spacing.html}{\code{vignette("kfas-irregular-timing-spacing", package = "tidyILD")}}
+#' (KFAS and irregular timing). \href{../doc/ild-decomposition-and-spacing.html}{\code{vignette("ild-decomposition-and-spacing", package = "tidyILD")}}
+#' (within-between and spacing).
 #' @export
 ild_spacing_class <- function(x,
                               cv_threshold = 0.2,

@@ -4,12 +4,14 @@
 \alias{ild_spaghetti}
 \title{ILD spaghetti / person trajectories (alias for ild_plot with type = "trajectory")}
 \usage{
-ild_spaghetti(x, var = NULL, ...)
+ild_spaghetti(x, var = NULL, facet_by = NULL, ...)
 }
 \arguments{
 \item{x}{ILD object or fitted model.}
 
 \item{var}{Variable to plot. If NULL, single data column is used.}
+
+\item{facet_by}{Optional column in ILD for [ggplot2::facet_wrap()] (e.g. cluster).}
 
 \item{...}{Passed to [ild_plot()] (e.g. max_ids, seed, id_var, time_var).}
 }

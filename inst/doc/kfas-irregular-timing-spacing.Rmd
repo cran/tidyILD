@@ -1,0 +1,87 @@
+---
+title: "Irregular measurement and latent state tracking"
+author: "Alex Litovchenko"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Irregular measurement and latent state tracking}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 4
+)
+has_kfas <- requireNamespace("KFAS", quietly = TRUE)
+```
+
+**Important:** This vignette does **not** claim that **KFAS** in tidyILD “fixes” or removes the challenges of irregular measurement. **tidyILD** helps you **measure and report** timing structure (intervals, gaps, spacing class). **`ild_kfas()`** fits a **discrete-time** state-space model along **observation order**; it is **not** a drop-in substitute for **continuous-time** latent models (e.g. ctsem-like workflows). High irregularity can trigger a **guardrail**; continuous-time solutions are a **later tier**.
+
+## Motivation
+
+Intensive longitudinal data (EMA, diaries, wearable prompts) often have **irregular** observation times: gaps, bursts, and varying intervals between measurements. **tidyILD** makes that structure visible and actionable **before** you choose a model:
+
+- **`ild_prepare()`** computes per-row intervals (e.g. `.ild_dt`) and respects **`gap_threshold`** for episode boundaries.
+- **`ild_summary()`** and **`ild_spacing()`** / **`ild_spacing_class()`** summarize interval variability and classify spacing as **regular-ish** vs **irregular-ish** (see `vignette("ild-decomposition-and-spacing", package = "tidyILD")`).
+- **`ild_design_check()`** aggregates spacing and design summaries for reporting.
+
+Those tools support **mixed models** (e.g. choosing AR1 vs CAR1 for residual correlation in `ild_lme()`) and **transparent reporting** of how timing was handled. **KFAS** in tidyILD adds another branch: **latent state** tracking for a **single** series—but the same spacing diagnostics still describe **whether** the timing pattern matches the **assumptions** of the state-space fit you use.
+
+## What `ild_kfas()` assumes today
+
+The **KFAS** backend in tidyILD fits models on a **discrete time index**: observations are ordered after `ild_prepare()`, and the state evolves **one step per row** for that series. It does **not** implement a **continuous-time** Kalman filter with unequal physical intervals built into the transition matrix (that design space points elsewhere, e.g. specialized continuous-time software—see `inst/dev/KFAS_V1_BACKEND.md`).
+
+So:
+
+- **Irregular calendar timing** is still reflected in **ILD** metadata (intervals, spacing class, gaps).
+- The **state-space** fit itself is **discrete-time** along the **observation order** unless and until the backend gains explicit continuous-time support.
+
+Use spacing outputs to **document** irregularity and to **interpret** results cautiously when intervals vary wildly: a local-level model on the observation index is not the same as a model that correctly weights by elapsed time in continuous time.
+
+## `irregular_time` and guardrails
+
+`ild_kfas(..., irregular_time = TRUE)` **suppresses** the default warning when spacing looks highly irregular relative to a discrete-time local-level assumption. It does **not** turn the model into a continuous-time model; it acknowledges that you have read the spacing diagnostics and accept the discrete-time framing (or a deliberate approximation).
+
+After fitting, **`ild_diagnose()`** may attach **KFAS-specific guardrails**, including **`GR_KFAS_HIGH_IRREGULARITY_FOR_DISCRETE_TIME`** when the design is **irregular-ish** but the fit remains discrete-time. That rule is a **design-space bridge**: it connects **spacing classification** to **state-space** workflow without claiming to fix misspecification.
+
+Browse rule definitions with `guardrail_registry()` and inspect triggered rows in `ild_diagnose(fit)$guardrails`.
+
+## Workflow sketch
+
+```{r spacing_demo, eval = TRUE}
+library(tidyILD)
+set.seed(3)
+d <- ild_simulate(n_id = 1, n_obs_per = 50, irregular = TRUE, seed = 11)
+x <- ild_prepare(d, id = "id", time = "time", gap_threshold = 7200)
+ild_summary(x)$summary
+ild_spacing_class(x)
+```
+
+If **KFAS** is installed, you can fit with explicit acknowledgment of irregular spacing:
+
+```{r kfas_irregular, eval = has_kfas}
+fit <- suppressWarnings(
+  ild_kfas(
+    x,
+    outcome = "y",
+    state_spec = "local_level",
+    time_units = "seconds",
+    irregular_time = TRUE
+  )
+)
+diag <- ild_diagnose(fit)
+# When spacing is irregular-ish and IQR/median interval ratio > 0.75, expect
+# GR_KFAS_HIGH_IRREGULARITY_FOR_DISCRETE_TIME among triggered guardrails:
+diag$guardrails[, c("rule_id", "message")]
+```
+
+If **KFAS** is not installed, install the **KFAS** package to run the chunk above.
+
+## Where to go next
+
+- `vignette("kfas-state-space-modeling", package = "tidyILD")` — state-space concepts and **filtered vs smoothed** states.
+- `vignette("kfas-choosing-backend", package = "tidyILD")` — when to use **lme/nlme**, **brms**, or **KFAS**.

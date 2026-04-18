@@ -4,7 +4,7 @@ author: "tidyILD authors"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Within-between decomposition and irregular spacing}
+  %\VignetteIndexEntry{Within-between decomposition and handling irregular spacing}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -56,3 +56,5 @@ x[, c(".ild_id", ".ild_dt", "y", "y_lag1")]
 ild_summary(x)$spacing
 ild_spacing_class(x)
 ```
+
+If your data start as a **tsibble** (`tbl_ts`), see `vignette("tsibble-interoperability", package = "tidyILD")` for how **tidyILD** records key/index and interval provenance and how to round-trip with **`ild_as_tsibble()`**.

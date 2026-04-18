@@ -23,3 +23,8 @@ Returns a simple classification for use in documentation or when choosing
 correlation structure (e.g. AR1 vs CAR1 in [ild_lme()]). The rule is
 documented and overridable via arguments. Does not change core ILD behavior.
 }
+\seealso{
+\href{../doc/kfas-irregular-timing-spacing.html}{\code{vignette("kfas-irregular-timing-spacing", package = "tidyILD")}}
+(KFAS and irregular timing). \href{../doc/ild-decomposition-and-spacing.html}{\code{vignette("ild-decomposition-and-spacing", package = "tidyILD")}}
+(within-between and spacing).
+}

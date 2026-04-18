@@ -4,7 +4,7 @@
 \alias{ild_methods}
 \title{Generate methods-style narrative from provenance}
 \usage{
-ild_methods(x, robust_se = NULL, ...)
+ild_methods(x, robust_se = NULL, bundle = NULL, ...)
 }
 \arguments{
 \item{x}{An ILD object (see [is_ild()]), a model from [ild_lme()] or [ild_tvem()],
@@ -14,6 +14,11 @@ a diagnostics object from [ild_diagnostics()], or another object with
 \item{robust_se}{Optional. If you reported fixed effects with cluster-robust SEs
 via [tidy_ild_model()] with \code{se = "robust"}, pass the type here (e.g. \code{"CR2"})
 so the methods text can mention it.}
+
+\item{bundle}{Optional. An object from [ild_diagnose()] (class
+\code{\link{ild_diagnostics_bundle}}). When provided and
+\code{nrow(bundle$guardrails) > 0}, a short methodological-cautions sentence
+is appended after the provenance paragraph.}
 
 \item{...}{Unused.}
 }
@@ -25,6 +30,11 @@ A single character string (one or more sentences) suitable for a
 Takes an ILD data object, a model fit, or a diagnostics object and produces
 a concise methods-style paragraph based on the recorded provenance (data
 preparation, centering, lagging, modeling, etc.).
+}
+\details{
+After fitting, call \code{diag <- ild_diagnose(fit)} and pass
+\code{bundle = diag} to surface triggered guardrails in the methods narrative
+without duplicating [ild_report()]'s structured \code{diagnostics_summary}.
 }
 \examples{
 set.seed(1)

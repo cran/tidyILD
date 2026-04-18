@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="tidyILD authors" />
+
+<meta name="date" content="2026-04-17" />
+
+<title>Temporal dynamics: choosing a model for ILD</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Temporal dynamics: choosing a model for
+ILD</h1>
+<h4 class="author">tidyILD authors</h4>
+<h4 class="date">2026-04-17</h4>
+
+
+
+<p>This article is a <strong>decision guide</strong> for
+<strong>temporal structure</strong>: lags in the mean, residual
+autocorrelation, time-varying effects, and latent dynamics. It does not
+replace statistical theory or domain expertise; it maps
+<strong>scientific questions</strong> to <strong>tidyILD entry
+points</strong> you already have.</p>
+<div id="three-axes-before-you-fit-anything" class="section level2">
+<h2>Three axes before you fit anything</h2>
+<ol style="list-style-type: decimal">
+<li><strong>Estimand</strong> — Associational lag effect? Stability of
+the outcome (lagged outcome in the mean)? Causal effect under a clear
+identification strategy (see MSM vignettes)? Latent smooth
+trajectory?</li>
+<li><strong>Spacing</strong> — Occasions are
+<strong>regular-ish</strong> or <strong>irregular-ish</strong>? See
+<code>ild_spacing_class()</code>, <code>ild_spacing()</code>, and
+<code>vignette(&quot;ild-decomposition-and-spacing&quot;, package = &quot;tidyILD&quot;)</code>.</li>
+<li><strong>Where dynamics live</strong> — In the <strong>fixed-effects
+mean</strong> (e.g. <code>y ~ x_lag1</code>), in <strong>residual
+correlation</strong> (AR1/CAR1 on within-person residuals), in a
+<strong>smooth over calendar/study time</strong>
+(<code>ild_tvem()</code>), or in a <strong>latent state</strong>
+(<code>ild_kfas()</code>, <code>ild_ctsem()</code>).</li>
+</ol>
+</div>
+<div id="decision-flow-conceptual" class="section level2">
+<h2>Decision flow (conceptual)</h2>
+<p>The following diagram is a navigation aid (rendered on sites that
+support Mermaid; otherwise read the labels as a checklist). Source in
+Mermaid syntax:</p>
+<pre><code>flowchart TD
+  q1[Estimand clear?]
+  spacing[Check ild_spacing_class]
+  meanLag[Lags in mean: ild_lag ild_panel_lag_prepare ild_crosslag]
+  residAR[Residual AR: ild_lme ar1=TRUE]
+  tvem[Effect varies over time: ild_tvem]
+  ct[Continuous-time latent: ild_ctsem]
+  kfas[Discrete-time latent level: ild_kfas]
+  q1 --&gt; spacing
+  spacing --&gt; meanLag
+  spacing --&gt; residAR
+  meanLag --&gt; residAR
+  spacing --&gt; tvem
+  spacing --&gt; ct
+  spacing --&gt; kfas</code></pre>
+<ul>
+<li><strong>Irregular spacing</strong> makes <strong>index lags</strong>
+(row order) easy to misinterpret as equal time. Prefer
+<strong><code>gap_aware</code></strong> or
+<strong><code>time_window</code></strong> in <code>ild_lag()</code>, or
+align to a grid, or use <strong>continuous-time</strong> models when the
+estimand requires it
+(<code>vignette(&quot;kfas-irregular-timing-spacing&quot;, package = &quot;tidyILD&quot;)</code>).</li>
+<li><strong>Residual ACF</strong> after a lag-mean model may indicate
+<strong>unmodeled autocorrelation</strong>; compare to
+<strong><code>ild_lme(..., ar1 = TRUE)</code></strong> (nlme path with
+AR1 or CAR1 chosen from spacing). See
+<code>vignette(&quot;temporal-dynamics-model-choice&quot;, package = &quot;tidyILD&quot;)</code>
+guardrails in <code>ild_diagnose()</code>.</li>
+</ul>
+</div>
+<div id="feature-map" class="section level2">
+<h2>Feature map</h2>
+<table>
+<colgroup>
+<col width="15%" />
+<col width="23%" />
+<col width="26%" />
+<col width="34%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Question</th>
+<th>tidyILD tools</th>
+<th>Backend / notes</th>
+<th>Not a substitute for</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Lagged predictor → outcome</td>
+<td><code>ild_lag()</code>, <code>ild_crosslag()</code>,
+<code>ild_panel_lag_prepare()</code></td>
+<td><code>ild_lme</code> / <code>ild_brms</code></td>
+<td>Full panel VAR / DSEM (multivariate lag system)</td>
+</tr>
+<tr class="even">
+<td>Lagged outcome (stability)</td>
+<td>Same lag helpers; model <code>y ~ y_lag1 + ...</code> carefully</td>
+<td>Mixed model</td>
+<td>Dynamic structural equation modeling software if that is the
+estimand</td>
+</tr>
+<tr class="odd">
+<td>Residual serial correlation</td>
+<td><code>ild_lme(..., ar1 = TRUE)</code></td>
+<td>nlme AR1 or CAR1</td>
+<td>Does not add lagged <strong>mean</strong> structure by itself</td>
+</tr>
+<tr class="even">
+<td>Effect changes over study time</td>
+<td><code>ild_tvem()</code>, <code>ild_tvem_plot()</code></td>
+<td>mgcv GAM</td>
+<td>Random <strong>slopes over time</strong> per person (consider
+<code>ild_brms</code> recipes)</td>
+</tr>
+<tr class="odd">
+<td>Discrete-time latent level</td>
+<td><code>ild_kfas()</code></td>
+<td>KFAS</td>
+<td>Pooled multilevel latent model across many IDs</td>
+</tr>
+<tr class="even">
+<td>Continuous-time latent dynamics</td>
+<td><code>ild_ctsem()</code></td>
+<td>ctsem / Stan</td>
+<td>Quick lag regression on irregular data without CT assumptions</td>
+</tr>
+<tr class="odd">
+<td>Compare a few fitted models</td>
+<td><code>ild_compare_fits()</code></td>
+<td>AIC/BIC where defined</td>
+<td>Likelihood-ratio tests unless models are nested and comparable</td>
+</tr>
+<tr class="even">
+<td>Multivariate lags / feedback (joint system)</td>
+<td>Same lag helpers; <code>ild_crosslag()</code> is one equation at a
+time</td>
+<td>Export preprocessed data; see
+<code>vignette(&quot;ild-specialist-backends&quot;, package = &quot;tidyILD&quot;)</code></td>
+<td>dynamite, lavaan DSEM, multivariate brms / ctsem</td>
+</tr>
+<tr class="odd">
+<td>High-dimensional time-varying predictors (p &gt;&gt; n)</td>
+<td>Unpenalized <code>ild_lme</code> / <code>lme4</code> is not designed
+for this</td>
+<td>Same vignette: hand off to penalized longitudinal tools</td>
+<td>PGEE and related methods</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="minimal-examples" class="section level2">
+<h2>Minimal examples</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(tidyILD)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>d <span class="ot">&lt;-</span> <span class="fu">ild_simulate</span>(<span class="at">n_id =</span> <span class="dv">12</span>, <span class="at">n_obs_per =</span> <span class="dv">10</span>, <span class="at">seed =</span> <span class="dv">1</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">ild_prepare</span>(d, <span class="at">id =</span> <span class="st">&quot;id&quot;</span>, <span class="at">time =</span> <span class="st">&quot;time&quot;</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">ild_crosslag</span>(x, y, y, <span class="at">lag =</span> <span class="dv">1</span><span class="dt">L</span>, <span class="at">ar1 =</span> <span class="cn">FALSE</span>, <span class="at">warn_no_ar1 =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; boundary (singular) fit: see help(&#39;isSingular&#39;)</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>out<span class="sc">$</span>lag_term[, <span class="fu">c</span>(<span class="st">&quot;term&quot;</span>, <span class="st">&quot;estimate&quot;</span>, <span class="st">&quot;std_error&quot;</span>)]</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; # A tibble: 1 × 3</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt;   term   estimate std_error</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;     &lt;dbl&gt;     &lt;dbl&gt;</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt; 1 y_lag1    0.778    0.0607</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>x2 <span class="ot">&lt;-</span> <span class="fu">ild_center</span>(x, y)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>fit_ar <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>(</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="fu">ild_lme</span>(y <span class="sc">~</span> y_bp <span class="sc">+</span> y_wp, <span class="at">data =</span> x2, <span class="at">ar1 =</span> <span class="cn">TRUE</span>, <span class="at">warn_no_ar1 =</span> <span class="cn">FALSE</span>, <span class="at">warn_uncentered =</span> <span class="cn">FALSE</span>),</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="at">error =</span> <span class="cf">function</span>(e) <span class="cn">NULL</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>)</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(fit_ar)) {</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>  <span class="fu">print</span>(fit_ar)</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>  <span class="st">&quot;nlme fit skipped on this platform&quot;</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>}</span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt; [1] &quot;nlme fit skipped on this platform&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>x3 <span class="ot">&lt;-</span> <span class="fu">ild_simulate</span>(<span class="at">n_id =</span> <span class="dv">10</span>, <span class="at">n_obs_per =</span> <span class="dv">15</span>, <span class="at">seed =</span> <span class="dv">2</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>x3<span class="sc">$</span>x <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="fu">nrow</span>(x3))</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>x3 <span class="ot">&lt;-</span> <span class="fu">ild_prepare</span>(x3, <span class="at">id =</span> <span class="st">&quot;id&quot;</span>, <span class="at">time =</span> <span class="st">&quot;time&quot;</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>tv <span class="ot">&lt;-</span> <span class="fu">ild_tvem</span>(x3, <span class="st">&quot;y&quot;</span>, <span class="st">&quot;x&quot;</span>, <span class="at">k =</span> <span class="dv">5</span>, <span class="at">re_id =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="fu">summary</span>(tv)</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt; Family: gaussian </span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt; Link function: identity </span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt; Formula:</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt; y ~ s(.ild_time_num, k = 5) + s(.ild_time_num, by = x, k = 5) + </span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt;     s(.ild_id, bs = &quot;re&quot;)</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co">#&gt; Parametric coefficients:</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="co">#&gt;             Estimate Std. Error t value Pr(&gt;|t|)   </span></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="co">#&gt; (Intercept)   0.9312     0.3205   2.905  0.00429 **</span></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="co">#&gt; ---</span></span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a><span class="co">#&gt; Approximate significance of smooth terms:</span></span>
+<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a><span class="co">#&gt;                      edf Ref.df     F p-value    </span></span>
+<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a><span class="co">#&gt; s(.ild_time_num)   2.514  3.025 23.05  &lt;2e-16 ***</span></span>
+<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a><span class="co">#&gt; s(.ild_time_num):x 2.000  2.000  0.94   0.393    </span></span>
+<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a><span class="co">#&gt; s(.ild_id)         8.820  9.000 49.59  &lt;2e-16 ***</span></span>
+<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a><span class="co">#&gt; ---</span></span>
+<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
+<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a><span class="co">#&gt; R-sq.(adj) =  0.779   Deviance explained = 79.9%</span></span>
+<span id="cb4-29"><a href="#cb4-29" tabindex="-1"></a><span class="co">#&gt; GCV = 0.33544  Scale est. = 0.30339   n = 150</span></span></code></pre></div>
+</div>
+<div id="further-reading" class="section level2">
+<h2>Further reading</h2>
+<ul>
+<li><code>vignette(&quot;tidyILD-workflow&quot;, package = &quot;tidyILD&quot;)</code></li>
+<li><code>vignette(&quot;ild-specialist-backends&quot;, package = &quot;tidyILD&quot;)</code>
+(multivariate / high-p handoffs)</li>
+<li><code>vignette(&quot;kfas-choosing-backend&quot;, package = &quot;tidyILD&quot;)</code></li>
+<li><code>vignette(&quot;brms-dynamics-recipes&quot;, package = &quot;tidyILD&quot;)</code>
+(Bayesian templates)</li>
+<li><code>vignette(&quot;heterogeneity-interpretation&quot;, package = &quot;tidyILD&quot;)</code>
+(person-specific slopes vs dynamics)</li>
+</ul>
+<pre><code>#&gt; R version 4.5.3 (2026-03-11)
+#&gt; Platform: aarch64-apple-darwin20
+#&gt; Running under: macOS Sequoia 15.6
+#&gt; 
+#&gt; Matrix products: default
+#&gt; BLAS:   /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRblas.0.dylib 
+#&gt; LAPACK: /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1
+#&gt; 
+#&gt; locale:
+#&gt; [1] C/en_US/en_US/C/en_US/en_US
+#&gt; 
+#&gt; time zone: America/New_York
+#&gt; tzcode source: internal
+#&gt; 
+#&gt; attached base packages:
+#&gt; [1] stats     graphics  grDevices utils     datasets  methods   base     
+#&gt; 
+#&gt; other attached packages:
+#&gt; [1] ggplot2_4.0.0 dplyr_1.1.4   tidyILD_0.4.0
+#&gt; 
+#&gt; loaded via a namespace (and not attached):
+#&gt;  [1] sandwich_3.1-1     sass_0.4.10        utf8_1.2.6         generics_0.1.4    
+#&gt;  [5] anytime_0.3.12     lattice_0.22-9     lme4_1.1-37        digest_0.6.37     
+#&gt;  [9] magrittr_2.0.4     evaluate_1.0.5     grid_4.5.3         timechange_0.3.0  
+#&gt; [13] RColorBrewer_1.1-3 fastmap_1.2.0      jsonlite_2.0.0     Matrix_1.7-4      
+#&gt; [17] mgcv_1.9-4         scales_1.4.0       jquerylib_0.1.4    reformulas_0.4.1  
+#&gt; [21] Rdpack_2.6.4       cli_3.6.5          rlang_1.1.6        rbibutils_2.3     
+#&gt; [25] KFAS_1.6.0         splines_4.5.3      withr_3.0.2        cachem_1.1.0      
+#&gt; [29] yaml_2.3.10        tools_4.5.3        nloptr_2.2.1       minqa_1.2.8       
+#&gt; [33] tsibble_1.2.0      boot_1.3-32        vctrs_0.6.5        R6_2.6.1          
+#&gt; [37] clubSandwich_0.6.1 zoo_1.8-14         lifecycle_1.0.4    lubridate_1.9.4   
+#&gt; [41] MASS_7.3-65        pkgconfig_2.0.3    pillar_1.11.1      bslib_0.9.0       
+#&gt; [45] gtable_0.3.6       glue_1.8.0         Rcpp_1.1.0         xfun_0.53         
+#&gt; [49] tibble_3.3.0       tidyselect_1.2.1   knitr_1.50         farver_2.1.2      
+#&gt; [53] htmltools_0.5.8.1  nlme_3.1-168       rmarkdown_2.29     labeling_0.4.3    
+#&gt; [57] compiler_4.5.3     S7_0.2.0</code></pre>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

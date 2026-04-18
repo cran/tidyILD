@@ -12,7 +12,7 @@
 
 <meta name="author" content="tidyILD authors" />
 
-<meta name="date" content="2026-03-06" />
+<meta name="date" content="2026-04-17" />
 
 <title>Within-between decomposition and handling irregular spacing</title>
 
@@ -342,7 +342,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <h1 class="title toc-ignore">Within-between decomposition and handling
 irregular spacing</h1>
 <h4 class="author">tidyILD authors</h4>
-<h4 class="date">2026-03-06</h4>
+<h4 class="date">2026-04-17</h4>
 
 
 
@@ -442,6 +442,12 @@ regular-ish, CAR1 for irregular-ish).</p>
 <span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a><span class="co">#&gt; 3     3     3747.   965.           5      NA</span></span>
 <span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a><span class="fu">ild_spacing_class</span>(x)</span>
 <span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a><span class="co">#&gt; [1] &quot;regular-ish&quot;</span></span></code></pre></div>
+<p>If your data start as a <strong>tsibble</strong>
+(<code>tbl_ts</code>), see
+<code>vignette(&quot;tsibble-interoperability&quot;, package = &quot;tidyILD&quot;)</code>
+for how <strong>tidyILD</strong> records key/index and interval
+provenance and how to round-trip with
+<strong><code>ild_as_tsibble()</code></strong>.</p>
 </div>
 
 

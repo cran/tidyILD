@@ -1,0 +1,73 @@
+---
+title: "Continuous-Time Dynamics with ctsem in tidyILD"
+author: "tidyILD authors"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Continuous-Time Dynamics with ctsem in tidyILD}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+This vignette introduces the `ctsem` backend in tidyILD via `ild_ctsem()`.
+Use this path when your scientific target is **continuous-time latent dynamics**
+under irregular measurement timing.
+
+## When to use `ild_ctsem()`
+
+- Choose `ild_ctsem()` for continuous-time latent process modeling.
+- Choose `ild_kfas()` for discrete-time state-space workflows.
+- Choose `ild_lme()` / `ild_brms()` for multilevel regression targets.
+
+## Minimal workflow
+
+```{r eval = FALSE}
+library(tidyILD)
+
+d <- ild_simulate(n_id = 1, n_obs_per = 60, seed = 501)
+x <- ild_prepare(d, id = "id", time = "time")
+x <- ild_center(x, y)
+
+fit_ct <- ild_ctsem(
+  data = x,
+  outcome = "y",
+  model_type = "stanct",
+  chains = 1,
+  iter = 400
+)
+
+fit_ct
+td <- ild_tidy(fit_ct)
+ag <- ild_augment(fit_ct)
+dg <- ild_diagnose(fit_ct)
+```
+
+## Diagnostics and plots
+
+```{r eval = FALSE}
+ild_autoplot(fit_ct, type = "fitted_vs_actual")
+ild_autoplot(fit_ct, type = "residual_time")
+ild_autoplot(dg, section = "fit", type = "convergence")
+ild_autoplot(dg, section = "residual", type = "acf")
+```
+
+## Guardrails and reporting
+
+`ild_diagnose(fit_ct)` may trigger ctsem-focused guardrails such as:
+
+- `GR_CTSEM_NONCONVERGENCE`
+- `GR_CTSEM_UNSTABLE_DYNAMICS`
+- `GR_CTSEM_SHORT_SERIES_FOR_COMPLEX_DYNAMICS`
+
+These guardrails are surfaced in `print(dg)`, `ild_methods(fit_ct, bundle = dg)`,
+and `ild_report(fit_ct)`.
+
+## Notes
+
+- The v1 ctsem wrapper is intentionally conservative.
+- You can pass a custom `ct_model` object for advanced specifications.
+- Keep time scaling explicit (`time_col`, `time_scale`) for interpretability.

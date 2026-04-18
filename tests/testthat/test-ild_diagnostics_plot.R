@@ -19,6 +19,34 @@ test_that("ild_plot trajectory runs without error", {
   expect_s3_class(p, "ggplot")
 })
 
+test_that("ild_plot trajectory facet_by runs when column exists", {
+  d <- ild_simulate(n_id = 4, n_obs_per = 5, seed = 2)
+  d$grp <- rep(c("a", "b"), length.out = nrow(d))
+  x <- ild_prepare(d, id = "id", time = "time")
+  p <- ild_plot(x, type = "trajectory", var = "y", facet_by = "grp", max_ids = 4L)
+  expect_s3_class(p, "ggplot")
+})
+
+test_that("ild_plot facet_by errors when column missing", {
+  d <- ild_simulate(n_id = 2, n_obs_per = 4, seed = 1)
+  x <- ild_prepare(d, id = "id", time = "time")
+  expect_error(
+    ild_plot(x, type = "trajectory", var = "y", facet_by = "nosuch"),
+    "facet_by column"
+  )
+})
+
+test_that("ild_plot_predicted_trajectory and type predicted_trajectory return ggplot", {
+  d <- ild_simulate(n_id = 4, n_obs_per = 6, seed = 3)
+  d$grp <- rep(letters[1:2], length.out = nrow(d))
+  x <- ild_prepare(d, id = "id", time = "time")
+  fit <- ild_lme(y ~ 1 + (1 | id), data = x, ar1 = FALSE, warn_no_ar1 = FALSE)
+  p1 <- ild_plot_predicted_trajectory(fit, time_var = ".ild_seq", max_ids = 4L)
+  expect_s3_class(p1, "ggplot")
+  p2 <- ild_plot(fit, type = "predicted_trajectory", time_var = ".ild_seq", max_ids = 4L, facet_by = "grp")
+  expect_s3_class(p2, "ggplot")
+})
+
 test_that("ild_plot gaps runs without error", {
   d <- ild_simulate(n_id = 2, n_obs_per = 5, seed = 1)
   x <- ild_prepare(d, id = "id", time = "time")

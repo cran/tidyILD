@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Developer contracts (package standards)</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Developer contracts (package
+standards)</h1>
+
+
+
+<p>This vignette embeds the <strong>developer contract</strong> shipped
+with the package. Use it when adding engines (KFAS, ctsem, …) or
+evolving <code>ild_tidy()</code> / <code>ild_augment()</code> /
+<code>ild_diagnose()</code>. For a <strong>code skeleton</strong> (S3
+stubs, bundle assembly, guardrails, provenance, tests), see
+<code>inst/dev/backend-adapter-template.R</code> in the source tree.</p>
+<div id="tidyild-developer-contracts-package-standards" class="section level1">
+<h1>tidyILD developer contracts (package standards)</h1>
+<p><strong>Status:</strong> Normative for new backends and API
+evolution. User-facing summaries live in
+<code>?ild_diagnostics_bundle</code>, <code>?ild_tidy_schema</code>, and
+<code>?ild_augment_schema</code>; this document is the
+<strong>operational</strong> specification for implementers.</p>
+<p><strong>Version:</strong> Align with <strong>tidyILD</strong> package
+version; schema constants live in
+<code>R/ild_diagnostics_bundle.R</code>,
+<code>R/ild_schema_tidy_augment.R</code>, and
+<code>R/ild_guardrail_registry.R</code>.</p>
+<hr />
+<div id="diagnostics-bundle-standard-ild_diagnostics_bundle" class="section level2">
+<h2>1. Diagnostics bundle standard
+(<code>ild_diagnostics_bundle</code>)</h2>
+<div id="object-level-contract" class="section level3">
+<h3>1.1 Object-level contract</h3>
+<ul>
+<li><strong>Class:</strong>
+<code>c(&quot;ild_diagnostics_bundle&quot;, &quot;list&quot;)</code>.</li>
+<li><strong>Top-level names (fixed order, non-optional):</strong><br />
+<code>meta</code>, <code>data</code>, <code>design</code>,
+<code>fit</code>, <code>residual</code>, <code>predictive</code>,
+<code>missingness</code>, <code>causal</code>, <code>warnings</code>,
+<code>guardrails</code>, <code>summary_text</code><br />
+(constant <code>ILD_DIAGNOSTICS_BUNDLE_SLOTS</code> in source).</li>
+<li><strong>Validation:</strong>
+<code>validate_ild_diagnostics_bundle()</code> — list names must match
+exactly; <code>warnings</code> and <code>guardrails</code> must be
+tibbles; <code>guardrails</code> must include the columns in §1.10;
+<code>summary_text</code> must be character.</li>
+<li><strong>NULL sections:</strong> Any of <code>meta</code> …
+<code>causal</code> may be <code>NULL</code> if not applicable for an
+engine or run. <strong><code>warnings</code></strong> and
+<strong><code>guardrails</code></strong> are never <code>NULL</code>
+(use empty tibbles).</li>
+</ul>
+</div>
+<div id="section-meta" class="section level3">
+<h3>1.2 Section: <code>meta</code></h3>
+<table>
+<colgroup>
+<col width="20%" />
+<col width="29%" />
+<col width="17%" />
+<col width="32%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Required</th>
+<th>Type</th>
+<th>Semantics</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>engine</code></td>
+<td>Recommended</td>
+<td>character</td>
+<td>Backend id: <code>&quot;lmer&quot;</code>, <code>&quot;lme&quot;</code>,
+<code>&quot;brms&quot;</code>, or future ids (e.g. <code>&quot;kfas&quot;</code>).</td>
+</tr>
+<tr class="even">
+<td><code>n_obs</code>, <code>n_id</code></td>
+<td>Recommended</td>
+<td>integer</td>
+<td>Rows and distinct persons on the ILD used for diagnostics.</td>
+</tr>
+<tr class="odd">
+<td><code>ar1</code></td>
+<td>Optional</td>
+<td>logical</td>
+<td>Whether residual AR1/CAR1 was used (frequentist path).</td>
+</tr>
+<tr class="even">
+<td><code>brms_types</code></td>
+<td>Optional</td>
+<td>character</td>
+<td>Subset of diagnostics requested for brms (<code>convergence</code>,
+<code>sampler</code>, <code>ppc</code>).</td>
+</tr>
+</tbody>
+</table>
+<p>Additional named entries are allowed if documented per engine.</p>
+</div>
+<div id="section-data" class="section level3">
+<h3>1.3 Section: <code>data</code></h3>
+<p><strong>Purpose:</strong> Observation-level and cohort-level
+<strong>data</strong> quality (spacing, gaps, global missingness
+pattern).</p>
+<table>
+<colgroup>
+<col width="24%" />
+<col width="34%" />
+<col width="41%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Required</th>
+<th>Semantics</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>summary</code></td>
+<td>Recommended</td>
+<td>One-row tibble from <code>ild_summary()$summary</code>
+(e.g. <code>n_id</code>, <code>n_obs</code>, <code>prop_gap</code>,
+<code>median_dt_sec</code>, <code>iqr_dt_sec</code>).</td>
+</tr>
+<tr class="even">
+<td><code>spacing_class</code></td>
+<td>Recommended</td>
+<td><code>&quot;regular-ish&quot;</code> or <code>&quot;irregular-ish&quot;</code>
+(<code>ild_spacing_class()</code>).</td>
+</tr>
+<tr class="odd">
+<td><code>n_gaps</code>, <code>pct_gap</code></td>
+<td>Recommended</td>
+<td>Gap counts / percent of intervals flagged as gaps.</td>
+</tr>
+<tr class="even">
+<td><code>median_dt_sec</code>, <code>iqr_dt_sec</code></td>
+<td>Optional</td>
+<td>Timing dispersion.</td>
+</tr>
+<tr class="odd">
+<td><code>time_range</code></td>
+<td>Optional</td>
+<td>Numeric range of <code>.ild_time_num</code> or equivalent.</td>
+</tr>
+<tr class="even">
+<td><code>cohort</code></td>
+<td>Recommended</td>
+<td><code>list(n_id, n_obs, n_intervals)</code> aligned with
+<code>ild_summary</code>.</td>
+</tr>
+<tr class="odd">
+<td><code>obs_per_id</code></td>
+<td>Recommended</td>
+<td><code>list(min, median, max, sd)</code> observation counts per
+person (occasion imbalance).</td>
+</tr>
+<tr class="even">
+<td><code>outcome_summaries</code></td>
+<td>Optional</td>
+<td>Tibble per outcome column: <code>mean</code>, <code>sd</code>,
+<code>min</code>, <code>max</code>, <code>pct_na</code>, <code>n</code>
+(when model response/predictors passed to
+<code>ild_diagnose</code>).</td>
+</tr>
+<tr class="odd">
+<td><code>missingness_rates</code></td>
+<td>Optional</td>
+<td>Tibble <code>variable</code>, <code>pct_na</code> for those
+columns.</td>
+</tr>
+<tr class="even">
+<td><code>missing_pattern</code></td>
+<td>Optional</td>
+<td>List: <code>summary</code>, <code>overall</code>,
+<code>n_complete</code> from <code>ild_missing_pattern()</code> (global
+columns).</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="section-design" class="section level3">
+<h3>1.4 Section: <code>design</code></h3>
+<p><strong>Purpose:</strong> <strong>Design</strong> structure (WP/BP,
+imbalance, design-time missingness).</p>
+<table>
+<colgroup>
+<col width="24%" />
+<col width="34%" />
+<col width="41%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Required</th>
+<th>Semantics</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ild_design_check</code></td>
+<td>Recommended</td>
+<td>Full return value of <code>ild_design_check()</code> (embedded list
+object).</td>
+</tr>
+<tr class="even">
+<td><code>spacing_class</code>, <code>recommendation</code></td>
+<td>Optional</td>
+<td>Redundant copies acceptable for fast reporting.</td>
+</tr>
+<tr class="odd">
+<td><code>wp_bp</code></td>
+<td>Optional</td>
+<td>Decomposition tibble or <code>NULL</code> if <code>vars</code>
+omitted.</td>
+</tr>
+<tr class="even">
+<td><code>design_missingness</code></td>
+<td>Optional</td>
+<td>Summaries bundled inside <code>ild_design_check</code> / design
+slice.</td>
+</tr>
+<tr class="odd">
+<td><code>flags</code></td>
+<td>Recommended</td>
+<td><code>list(has_wp_bp, spacing_class, irregular)</code> for fast
+checks.</td>
+</tr>
+<tr class="even">
+<td><code>time_coverage</code></td>
+<td>Recommended</td>
+<td><code>list(min, max, span_sec)</code> from pooled timeline.</td>
+</tr>
+<tr class="odd">
+<td><code>occasion_imbalance</code></td>
+<td>Recommended</td>
+<td>Same object as <code>data$obs_per_id</code> (mirrored for
+visibility).</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="section-fit" class="section level3">
+<h3>1.5 Section: <code>fit</code></h3>
+<p><strong>Purpose:</strong> <strong>Estimation</strong> diagnostics
+(convergence, singularity, MCMC).</p>
+<p><strong>Frequentist <code>lmerMod</code>:</strong>
+<code>engine</code>, <code>singular</code>, <code>converged</code>,
+<code>optimizer_messages</code>, <code>optinfo</code> (lmer);
+<strong><code>reml</code></strong>,
+<strong><code>optimizer</code></strong>,
+<strong><code>theta_summary</code></strong>
+(<code>length</code>/<code>min</code>/<code>max</code> of
+variance-component vector), <strong><code>X_rank</code></strong>
+(fixed-effects design rank from <code>qr(X)</code>),
+<strong><code>residual_correlation</code></strong>
+(<code>list(modeled, structure, note)</code> — lmer has no AR1/CAR1;
+<code>modeled</code> reflects <code>attr(ild_ar1)</code>).</p>
+<p><strong>Frequentist <code>lme</code>:</strong> above where
+applicable; <strong><code>apVar_ok</code></strong>;
+<strong><code>residual_correlation</code></strong> with
+<strong><code>class</code></strong> (<code>ild_correlation_class</code>)
+and <strong><code>coef_corStruct</code></strong> when present.</p>
+<p><strong>Bayesian (<code>brmsfit</code>):</strong>
+<code>engine</code>, <code>ild_posterior</code>,
+<code>convergence_table</code>, <code>max_rhat</code>,
+<code>n_divergent</code>, <code>n_max_treedepth_hits</code>;
+<strong><code>residual_correlation</code></strong> (<code>note</code>
+only; residual structure is model-specific).</p>
+<p><strong>Optional <code>heterogeneity</code> (<code>lmerMod</code>,
+<code>lme</code>, <code>brmsfit</code>):</strong>
+<code>list(available, reason, object)</code>. When
+<code>available</code> is <code>TRUE</code>, <code>object</code> is an
+<code>ild_heterogeneity</code> result from [ild_heterogeneity()]
+(person-specific partial-pooling summaries). When extraction fails
+(e.g. intercept-only fixed model without random effects, or parsing
+error), <code>available</code> is <code>FALSE</code> and
+<code>reason</code> is a short message.
+<code>ild_autoplot(bundle, section = &quot;fit&quot;, type = &quot;heterogeneity&quot;, ...)</code>
+forwards <code>term</code> / <code>heterogeneity_type</code> to
+[ild_autoplot.ild_heterogeneity()].</p>
+</div>
+<div id="section-residual" class="section level3">
+<h3>1.6 Section: <code>residual</code></h3>
+<p><strong>Purpose:</strong> <strong>Residual</strong> behavior (ACF,
+Q-Q, vs time/fitted).</p>
+<table>
+<colgroup>
+<col width="24%" />
+<col width="34%" />
+<col width="41%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Required</th>
+<th>Semantics</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>legacy_ild_diagnostics</code></td>
+<td>Optional</td>
+<td>Full <code>ild_diagnostics()</code> object for frequentist engines
+(enables <code>plot_ild_diagnostics()</code> /
+<code>ild_autoplot(bundle, section = &quot;residual&quot;, type = NULL)</code>
+multi-plot or short <code>type</code> names <code>acf</code> /
+<code>qq</code> / <code>fitted</code>).</td>
+</tr>
+<tr class="even">
+<td><code>residual_sd</code>, <code>cor_observed_fitted</code></td>
+<td>Optional</td>
+<td>Scalar summaries.</td>
+</tr>
+<tr class="odd">
+<td><code>engine</code></td>
+<td>Recommended</td>
+<td>Engine id.</td>
+</tr>
+</tbody>
+</table>
+<p>Bayesian fits may omit <code>legacy_ild_diagnostics</code> and keep
+lighter summaries only.</p>
+</div>
+<div id="section-predictive" class="section level3">
+<h3>1.7 Section: <code>predictive</code></h3>
+<p><strong>Purpose:</strong> <strong>Predictive</strong> checks (obs vs
+fitted, PPC).</p>
+<table>
+<colgroup>
+<col width="45%" />
+<col width="55%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Content</th>
+<th>Semantics</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Frequentist</td>
+<td><code>engine</code>, <code>n</code>, <code>mean_abs_error</code>,
+<code>rmse</code>, <code>mean_residual</code> (bias),
+<code>max_abs_error</code>, <code>cor_observed_fitted</code>.</td>
+</tr>
+<tr class="even">
+<td>brms</td>
+<td><code>ppc</code> from <code>ild_brms_ppc_summary()</code> when
+requested; same observation-level scalars as frequentist when
+<code>ild_augment</code> succeeds (<code>n</code>, MAE, RMSE,
+etc.).</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="section-missingness" class="section level3">
+<h3>1.8 Section: <code>missingness</code></h3>
+<p><strong>Purpose:</strong> <strong>Variable-level</strong> missingness
+aligned to model terms (not duplicate of global
+<code>data$missing_pattern</code> when both exist).</p>
+<table>
+<colgroup>
+<col width="36%" />
+<col width="63%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Semantics</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>note</code></td>
+<td>Set when no model variables; else <code>NULL</code>.</td>
+</tr>
+<tr class="even">
+<td><code>summary</code>, <code>overall</code></td>
+<td>From <code>ild_missing_pattern(data, vars = predictors)</code> when
+predictors exist.</td>
+</tr>
+<tr class="odd">
+<td><code>pct_na_by_var</code></td>
+<td>Subset of <code>summary</code> (<code>variable</code>,
+<code>pct_na</code>) when available.</td>
+</tr>
+<tr class="even">
+<td><code>missing_model_diagnostic</code></td>
+<td>Optional: <code>tidy</code>, <code>message</code>,
+<code>outcome</code>, <code>predictors</code> when
+<code>ild_diagnose(..., missing_model = TRUE)</code> runs
+<code>ild_missing_model()</code>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="section-causal" class="section level3">
+<h3>1.9 Section: <code>causal</code></h3>
+<p><strong>Purpose:</strong> <strong>Causal / weighting</strong>
+diagnostics (IPW, positivity).</p>
+<p>Typical content: <code>columns_found</code>,
+<code>weight_summary</code> (<code>min</code>, <code>max</code>,
+<code>mean</code>) when <code>.ipw</code> or related columns exist on
+<code>ild_data</code>. Optional
+<strong><code>weight_detail</code></strong> (<code>quantiles</code>,
+<code>sum_w</code>) when
+<code>ild_diagnose(..., causal_detail = TRUE)</code>.</p>
+</div>
+<div id="tibbles-warnings-and-guardrails" class="section level3">
+<h3>1.10 Tibbles: <code>warnings</code> and <code>guardrails</code></h3>
+<p><strong><code>warnings</code> (event log from software /
+sampler):</strong></p>
+<table>
+<colgroup>
+<col width="42%" />
+<col width="57%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Column</th>
+<th>Semantics</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>source</code></td>
+<td>e.g. <code>&quot;lme4&quot;</code>, <code>&quot;stan&quot;</code>,
+<code>&quot;tidyILD&quot;</code>.</td>
+</tr>
+<tr class="even">
+<td><code>level</code></td>
+<td>e.g. <code>&quot;warning&quot;</code>, <code>&quot;note&quot;</code>.</td>
+</tr>
+<tr class="odd">
+<td><code>message</code></td>
+<td>Human-readable text.</td>
+</tr>
+<tr class="even">
+<td><code>code</code></td>
+<td>Short machine id: e.g. <code>lmer_warning</code>,
+<code>divergent_transitions</code>.</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>guardrails</code> (methodological rules; see
+<code>?guardrail_registry</code>):</strong></p>
+<table>
+<colgroup>
+<col width="42%" />
+<col width="57%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Column</th>
+<th>Semantics</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>rule_id</code></td>
+<td>Stable id (e.g. <code>GR_SINGULAR_RANDOM_EFFECTS</code>).</td>
+</tr>
+<tr class="even">
+<td><code>section</code></td>
+<td>Bundle section the rule relates to (<code>fit</code>,
+<code>design</code>, <code>data</code>, …).</td>
+</tr>
+<tr class="odd">
+<td><code>severity</code></td>
+<td>e.g. <code>info</code>, <code>warning</code>.</td>
+</tr>
+<tr class="even">
+<td><code>triggered</code></td>
+<td>Always <code>TRUE</code> for rows that appear (only triggered rules
+are stored).</td>
+</tr>
+<tr class="odd">
+<td><code>message</code>, <code>recommendation</code></td>
+<td>Run-specific or default text.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Surfacing guardrails (package identity):</strong></p>
+<ul>
+<li><strong><code>print()</code> on
+<code>ild_diagnostics_bundle</code>:</strong> After the slot listing,
+prints a <strong>Summary</strong> block: warning row count, guardrail
+row count, and (when <code>nrow(guardrails) &gt; 0</code>)
+<strong>highest severity</strong> (<code>info</code> &lt;
+<code>warning</code>) and up to <strong>five</strong> unique
+<code>rule_id</code> values. Helpers:
+<code>guardrail_severity_rank()</code> /
+<code>guardrail_max_severity()</code> in
+<code>R/ild_guardrail_registry.R</code>.</li>
+<li><strong><code>ild_report()</code>:</strong> On successful
+<code>ild_diagnose()</code>, <code>diagnostics_summary</code> includes
+<strong><code>guardrails_narrative</code></strong> (short string) and
+<strong><code>guardrails</code></strong> (<code>n</code>,
+<code>max_severity</code>, <code>rule_ids</code>). If any guardrails
+fired, <strong><code>methods_with_guardrails</code></strong> repeats the
+methods paragraph with the same guardrail sentence appended (equivalent
+to <code>ild_methods(fit, bundle = diagnose_result)</code>).</li>
+<li><strong><code>ild_methods(..., bundle = NULL)</code>:</strong>
+Optional <code>bundle</code> from <code>ild_diagnose(fit)</code>; when
+<code>nrow(bundle$guardrails) &gt; 0</code>, appends one sentence after
+provenance: <em>Methodological cautions (tidyILD guardrails):
+…</em></li>
+<li><strong>New rules:</strong> Each new <code>rule_id</code> added to
+<code>ILD_GUARDRAIL_REGISTRY</code> must have a <strong>deterministic
+regression test</strong> that asserts the rule can still be triggered
+(see <code>tests/testthat/test-guardrails-triggers.R</code> and
+fit-level tests via <code>evaluate_guardrails_fit()</code> with a
+constructed <code>fit_diag</code> when full <code>ild_diagnose()</code>
+is impractical).</li>
+</ul>
+<p><strong>Contract regression (semantics, not only shape):</strong>
+<code>tests/testthat/helper-contract-fixtures.R</code> builds stable
+seeded scenarios (regular vs irregular spacing, IPW instability, late
+dropout with merged contextual guardrails, merged singular / brms
+fit-level guardrails).
+<code>tests/testthat/test-contract-regression.R</code> checks dense
+bundle sections, expected <code>rule_id</code>s, <code>ild_tidy</code> /
+<code>ild_augment</code> required columns, core
+<code>ild_autoplot()</code> routes, and guardrail-aware
+<code>ild_methods(..., bundle)</code> text. The brms scenario uses
+<code>skip_on_cran()</code> because it fits a small <code>brms</code>
+model.</p>
+</div>
+<div id="summary_text" class="section level3">
+<h3>1.11 <code>summary_text</code></h3>
+<p>Character vector of short narrative lines for reporting
+(<code>ild_report</code>, printing). Not a substitute for structured
+sections.</p>
+<hr />
+</div>
+</div>
+<div id="tidy-output-standard-ild_tidy" class="section level2">
+<h2>2. Tidy output standard (<code>ild_tidy()</code>)</h2>
+<p><strong>Schema function:</strong> <code>ild_tidy_schema()</code> —
+constants <code>ILD_TIDY_REQUIRED_COLS</code>,
+<code>ILD_TIDY_OPTIONAL_COLS</code>.</p>
+<div id="required-columns-implemented" class="section level3">
+<h3>2.1 Required columns (implemented)</h3>
+<p><code>term</code>, <code>component</code>, <code>effect_level</code>,
+<code>estimate</code>, <code>std_error</code>, <code>conf_low</code>,
+<code>conf_high</code>, <code>statistic</code>, <code>p_value</code>,
+<code>interval_type</code>, <code>engine</code>,
+<code>model_class</code></p>
+<p><strong>Frequentist (<code>tidy_ild_model</code>):</strong>
+<code>interval_type</code> is <code>&quot;Wald&quot;</code>;
+<code>statistic</code> is the model-reported <strong>t</strong> (or
+<strong>z</strong>-ratio when <code>se = &quot;robust&quot;</code>).
+<strong>brms:</strong> <code>interval_type</code> is
+<code>&quot;quantile&quot;</code> (equal-tailed default intervals);
+<code>p_value</code> is <code>NA</code>; optional posterior columns
+filled when <code>intervals = TRUE</code>.</p>
+</div>
+<div id="optional-columns" class="section level3">
+<h3>2.2 Optional columns</h3>
+<p><code>rhat</code>, <code>ess_bulk</code>, <code>ess_tail</code>,
+<code>pd</code>, <code>rope_low</code>, <code>rope_high</code> (Bayesian
+/ posterior summaries).</p>
+</div>
+<div id="semantics-component" class="section level3">
+<h3>2.3 Semantics: <code>component</code></h3>
+<p>Conservative vocabulary (extend with engine-specific values only if
+documented):</p>
+<table>
+<colgroup>
+<col width="43%" />
+<col width="56%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>fixed</code></td>
+<td>Standard fixed-effect regression coefficients (current default for
+all exposed FE rows).</td>
+</tr>
+<tr class="even">
+<td><code>random</code></td>
+<td>Random-effect variance / covariance summaries when exposed as
+rows.</td>
+</tr>
+<tr class="odd">
+<td><code>auxiliary</code></td>
+<td>Dispersion, residual variance, or residual-correlation parameters
+(not yet exposed for lme4/nlme in <code>ild_tidy</code>).</td>
+</tr>
+<tr class="even">
+<td><code>scale</code></td>
+<td>Dispersion parameters (legacy alias in docs; prefer
+<code>auxiliary</code> where appropriate).</td>
+</tr>
+<tr class="odd">
+<td><code>correlation</code></td>
+<td>Correlation structure parameters (e.g. AR1).</td>
+</tr>
+<tr class="even">
+<td><code>nonlinear</code></td>
+<td>Smooth / spline terms (e.g. mgcv-style).</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="semantics-effect_level" class="section level3">
+<h3>2.4 Semantics: <code>effect_level</code></h3>
+<table>
+<colgroup>
+<col width="43%" />
+<col width="56%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>population</code></td>
+<td>Intercept / cohort-mean type estimands (<code>(Intercept)</code>
+rows).</td>
+</tr>
+<tr class="even">
+<td><code>within</code></td>
+<td>Term name ends with <code>_wp</code> (within-person component).</td>
+</tr>
+<tr class="odd">
+<td><code>between</code></td>
+<td>Term name ends with <code>_bp</code> (between-person
+component).</td>
+</tr>
+<tr class="even">
+<td><code>cross_level</code></td>
+<td>Interaction term involving both <code>_wp</code> and
+<code>_bp</code> substrings.</td>
+</tr>
+<tr class="odd">
+<td><code>unknown</code></td>
+<td>Coefficient rows that are not clearly classified (default for
+generic predictors).</td>
+</tr>
+<tr class="even">
+<td><code>auxiliary</code></td>
+<td>Variance / sampler / state parameters (when such rows exist).</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="semantics-interval_type" class="section level3">
+<h3>2.5 Semantics: <code>interval_type</code></h3>
+<table>
+<colgroup>
+<col width="43%" />
+<col width="56%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Wald</code></td>
+<td>Symmetric interval from SE (normal or t as implemented).</td>
+</tr>
+<tr class="even">
+<td><code>quantile</code></td>
+<td>Equal-tailed posterior quantiles.</td>
+</tr>
+<tr class="odd">
+<td><code>HPD</code></td>
+<td>Highest posterior density interval.</td>
+</tr>
+<tr class="even">
+<td><code>normal</code></td>
+<td>Alias for large-sample normal approximation when distinct from
+<code>Wald</code>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div>
+</div>
+<div id="augment-output-standard-ild_augment" class="section level2">
+<h2>3. Augment output standard (<code>ild_augment()</code>)</h2>
+<p><strong>Schema function:</strong> <code>ild_augment_schema()</code> —
+<code>ILD_AUGMENT_REQUIRED_COLS</code>,
+<code>ILD_AUGMENT_OPTIONAL_COLS</code>.</p>
+<div id="required-columns-implemented-1" class="section level3">
+<h3>3.1 Required columns (implemented)</h3>
+<p><code>.ild_id</code>, <code>.ild_time</code>, <code>.outcome</code>,
+<code>.fitted</code>, <code>.resid</code>, <code>.resid_std</code>,
+<code>engine</code>, <code>model_class</code></p>
+<p><strong><code>.resid_std</code> semantics (principled but
+sparse):</strong> set from <code>residuals(fit, type = &quot;pearson&quot;)</code>
+when the engine returns a numeric vector of the correct length;
+otherwise all <code>NA</code>. Do <strong>not</strong> populate with
+arbitrary z-scores of <code>.resid</code> in the same column (avoids
+mixing definitions). For <strong>brms</strong>, Pearson residuals are
+used when available; otherwise <code>NA</code>.</p>
+</div>
+<div id="optional-columns-1" class="section level3">
+<h3>3.2 Optional columns</h3>
+<p><code>.fitted_lower</code>, <code>.fitted_upper</code>
+(e.g. equal-tailed 95% for <strong>brms</strong>
+<code>ild_augment</code>), <code>.influence</code>, <code>.state</code>,
+<code>.state_lower</code>, <code>.state_upper</code> (e.g. latent
+states; often <code>NA</code> placeholders).</p>
+</div>
+<div id="reserved-prefixes-and-names" class="section level3">
+<h3>3.3 Reserved prefixes and names</h3>
+<table>
+<colgroup>
+<col width="36%" />
+<col width="64%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pattern</th>
+<th>Reserved for</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>.ild_*</code></td>
+<td>ILD system columns from <code>ild_prepare()</code> (do not overwrite
+for non-ILD semantics).</td>
+</tr>
+<tr class="even">
+<td><code>.fitted*</code></td>
+<td>Fitted / predicted mean response.</td>
+</tr>
+<tr class="odd">
+<td><code>.resid*</code></td>
+<td>Residuals (raw or transformed).</td>
+</tr>
+<tr class="even">
+<td><code>.state*</code></td>
+<td>Latent trajectory / random-effect line values when exposed per
+row.</td>
+</tr>
+</tbody>
+</table>
+<p>The observed response is always
+<strong><code>.outcome</code></strong> (no duplicate formula-named
+column in the augmented tibble).</p>
+<hr />
+</div>
+</div>
+<div id="backend-adapter-checklist" class="section level2">
+<h2>4. Backend adapter checklist</h2>
+<p><strong>Skeleton:</strong>
+<code>inst/dev/backend-adapter-template.R</code> — commented R patterns
+for <code>ild_tidy</code>, <code>ild_augment</code>,
+<code>ild_diagnose</code>, guardrails, provenance, tests, and docs (not
+sourced by the package; copy into <code>R/</code> when
+implementing).</p>
+<p>Each new estimation backend (e.g. KFAS, ctsem) should ship:</p>
+<div id="s3-methods-operational-generics" class="section level3">
+<h3>4.1 S3 methods (operational generics)</h3>
+<table>
+<colgroup>
+<col width="40%" />
+<col width="59%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Generic</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ild_tidy()</code></td>
+<td>Return a tibble <strong>aligned with
+<code>ild_tidy_schema()</code></strong> (required columns when
+feasible).</td>
+</tr>
+<tr class="even">
+<td><code>ild_augment()</code></td>
+<td>Return a tibble <strong>aligned with
+<code>ild_augment_schema()</code></strong>; attach
+<code>attr(..., &quot;ild_data&quot;)</code> on the <strong>model object</strong>
+used by diagnostics.</td>
+</tr>
+<tr class="odd">
+<td><code>ild_diagnose()</code></td>
+<td>Return <strong><code>ild_diagnostics_bundle</code></strong> only;
+populate all relevant sections; use shared fillers/helpers where
+possible (<code>fill_diagnostics_*</code>, guardrail evaluation).</td>
+</tr>
+<tr class="even">
+<td><code>ild_autoplot()</code></td>
+<td>For bundle: <strong>section-first</strong> routing
+(<code>section</code> + <code>type</code>); implement plotters that read
+bundle slots; call engine-specific code only inside plotters. Attach
+<code>attr(bundle, &quot;ild_fit&quot;)</code> and
+<code>attr(bundle, &quot;ild_data&quot;)</code> from <code>ild_diagnose()</code>
+so PPC, fitted, and missingness plots work without a second user
+argument.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="data-attachment" class="section level3">
+<h3>4.2 Data attachment</h3>
+<ul>
+<li>Fitted object must carry
+<strong><code>attr(fit, &quot;ild_data&quot;)</code></strong> (validated ILD) for
+<code>ild_augment</code> / <code>ild_diagnose</code>.</li>
+</ul>
+</div>
+<div id="provenance" class="section level3">
+<h3>4.3 Provenance</h3>
+<ul>
+<li>Attach <strong><code>attr(fit, &quot;ild_provenance&quot;)</code></strong> via
+<code>ild_new_analysis_provenance()</code> (or equivalent) with
+<code>step</code> set to the fitting function name
+(e.g. <code>ild_kfas</code>), serializable <code>args</code>, and
+<code>outputs</code> summarizing key choices.</li>
+</ul>
+</div>
+<div id="tests-minimum" class="section level3">
+<h3>4.4 Tests (minimum)</h3>
+<ul>
+<li><strong>Schema:</strong> <code>expect_named()</code> /
+<code>expect_true(all(ild_tidy_schema()$required %in% names(...)))</code>
+for tidy output (or explicit waiver for transitional columns).</li>
+<li><strong>Bundle:</strong>
+<code>expect_s3_class(..., &quot;ild_diagnostics_bundle&quot;)</code>;
+<code>expect_no_error(validate_ild_diagnostics_bundle(...))</code> when
+constructed via <code>ild_diagnose()</code>.</li>
+<li><strong>Smoke:</strong> one small simulated ILD dataset, one fitted
+model, <code>ild_tidy</code>, <code>ild_augment</code>,
+<code>ild_diagnose</code> run without error (use
+<code>skip_if_not_installed</code> for heavy deps).</li>
+</ul>
+</div>
+<div id="documentation" class="section level3">
+<h3>4.5 Documentation</h3>
+<ul>
+<li>Export methods documented on the same <code>@rdname</code> as
+existing engines where possible; describe engine-specific
+<strong>fit</strong> / <strong>residual</strong> slots in
+<strong>Details</strong>.</li>
+</ul>
+<hr />
+</div>
+</div>
+<div id="tsibble-interoperability" class="section level2">
+<h2>5. Tsibble interoperability</h2>
+<p><strong>Status:</strong> Phase 1 — provenance on input; best-effort
+round-trip via <code>ild_as_tsibble()</code>.</p>
+<ul>
+<li><strong>Conceptual choice (keys):</strong> ILD uses
+<strong>one</strong> subject identifier column. <code>tbl_ts</code>
+inputs must have <strong>exactly one</strong> key variable. Multiple
+keys (e.g. crossed factors) are <strong>not</strong> supported; reshape
+or paste into a single id before <code>ild_prepare()</code>.</li>
+<li><strong>Provenance:</strong> When <code>data</code> is a
+<code>tbl_ts</code>, <code>ild_prepare()</code> stores metadata in
+<code>attr(x, &quot;tidyILD&quot;)$tsibble</code> (key/index names, interval
+summary string, <code>is_regular</code>, tsibble version). The
+<code>tbl_ts</code> class is still dropped on output; this records
+formal time-series semantics for reporting and for
+<code>ild_as_tsibble()</code>.</li>
+<li><strong>Spacing:</strong> <code>ild_spacing$tsibble</code> (when
+present) links declared tsibble regularity/interval text to empirical
+<code>.ild_dt</code> summaries; they may diverge after sorting,
+duplicate handling, or row drops.</li>
+<li><strong>Round-trip:</strong> <code>ild_as_tsibble()</code> passes
+<code>regular =</code> from stored <code>is_regular</code> when
+available so <code>interval()</code> often matches the original for
+<strong>unchanged</strong> data.</li>
+</ul>
+<hr />
+</div>
+<div id="cross-backend-validation-benchmark-harness" class="section level2">
+<h2>6. Cross-backend validation benchmark harness</h2>
+<p><strong>Normative spec:</strong>
+<code>inst/dev/BACKEND_VALIDATION_BENCHMARK_CONTRACT.md</code> (scenario
+IDs, tiers, metric columns, artifact layout).</p>
+<p><strong>Purpose:</strong> Run shared simulation scenarios across
+<code>lme4</code> / <code>nlme</code> / <code>brms</code> / KFAS / ctsem
+entry points (where installed), write <code>benchmark_raw.csv</code>,
+<code>benchmark_summary.csv</code>, and
+<code>benchmark_metadata.json</code>, and optionally gate regressions
+with JSON thresholds in
+<code>inst/benchmarks/thresholds-*.json</code>.</p>
+<p><strong>Implementation (not exported API):</strong></p>
+<table>
+<colgroup>
+<col width="62%" />
+<col width="37%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Location</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>tests/testthat/helper-backend-validation-harness.R</code></td>
+<td><code>harness_run_benchmark()</code>, metric extraction,
+summarization, threshold evaluation.</td>
+</tr>
+<tr class="even">
+<td><code>scripts/run-backend-validation-benchmarks.R</code></td>
+<td>CLI runner (<code>--tier</code>, <code>--backends</code>,
+<code>--n-sim</code>, <code>--seed</code>, <code>--out-dir</code>).
+Expects package root + <code>pkgload::load_all()</code> or
+<code>devtools::load_all()</code>.</td>
+</tr>
+<tr class="odd">
+<td><code>scripts/check-backend-validation-thresholds.R</code></td>
+<td>Reads <code>benchmark_summary.csv</code> + thresholds JSON; writes
+<code>benchmark_checks.csv</code>; exit code 1 on hard failures.</td>
+</tr>
+<tr class="even">
+<td><code>.github/workflows/backend-validation-benchmarks.yml</code></td>
+<td>Scheduled / manual CI; uploads artifacts.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>When adding a new backend:</strong> extend the scenario
+manifest and <code>harness_fit_one()</code> in the harness helper;
+document the scenario here and in the benchmark contract; add or adjust
+<code>skip_if_not_installed()</code> tests in
+<code>tests/testthat/test-backend-validation-harness.R</code>. Prefer
+<strong>warn-only</strong> thresholds for slow or fragile optional
+engines until metrics stabilize.</p>
+<hr />
+</div>
+<div id="temporal-dynamics-helpers-and-guardrails" class="section level2">
+<h2>7. Temporal dynamics helpers and guardrails</h2>
+<p><strong>User-facing functions</strong> (see
+<code>vignette(&quot;temporal-dynamics-model-choice&quot;, package = &quot;tidyILD&quot;)</code>):</p>
+<table>
+<colgroup>
+<col width="62%" />
+<col width="37%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ild_panel_lag_prepare()</code></td>
+<td>Multi-variable <code>ild_lag()</code> + single
+<code>ild_check_lags()</code>; provenance step
+<code>ild_panel_lag_prepare</code>.</td>
+</tr>
+<tr class="even">
+<td><code>ild_compare_fits()</code></td>
+<td>Named list of fits → tibble (<code>aic</code>, <code>bic</code>,
+<code>n_obs</code>, <code>converged</code>, optional
+<code>n_guardrails</code>); <strong>not</strong> an automatic
+nested-model test.</td>
+</tr>
+<tr class="odd">
+<td><code>ild_brms_dynamics_formula()</code></td>
+<td>Returns a suggested <code>formula</code> + <code>notes</code> for
+<code>ild_brms()</code>; does not fit.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Guardrails</strong> (registry +
+<code>evaluate_guardrails_contextual()</code>):</p>
+<ul>
+<li><code>GR_LAG_MEAN_STRONG_RESIDUAL_ACF_NO_AR</code> — lag terms in
+mean, no residual AR, pooled residual ACF at lag 1 above a fixed
+threshold (heuristic).</li>
+<li><code>GR_INDEX_LAG_IRREGULAR_SPACING</code> —
+<code>ild_spacing_class</code> irregular-ish and data provenance records
+<code>ild_lag(..., mode = &quot;index&quot;)</code>.</li>
+</ul>
+<hr />
+</div>
+<div id="related-files-in-the-source-tree" class="section level2">
+<h2>8. Related files in the source tree</h2>
+<table>
+<colgroup>
+<col width="62%" />
+<col width="37%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Location</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>inst/CONTRACTS.md</code></td>
+<td>Short user-facing mirror of slot/column names.</td>
+</tr>
+<tr class="even">
+<td><code>inst/dev/backend-adapter-template.R</code></td>
+<td>Skeleton methods and checklist for new engines (copy-paste starting
+point).</td>
+</tr>
+<tr class="odd">
+<td><code>inst/dev/KFAS_V1_BACKEND.md</code></td>
+<td>KFAS / <code>ild_kfas()</code> v1 design (Gaussian local level
+first; full vocabulary staged).</td>
+</tr>
+<tr class="even">
+<td><code>inst/dev/BACKEND_VALIDATION_BENCHMARK_CONTRACT.md</code></td>
+<td>Benchmark scenario matrix and artifact schema.</td>
+</tr>
+<tr class="odd">
+<td><code>R/ild_diagnostics_bundle.R</code></td>
+<td>Bundle constructor and validation.</td>
+</tr>
+<tr class="even">
+<td><code>R/ild_schema_tidy_augment.R</code></td>
+<td>Tidy/augment column lists.</td>
+</tr>
+<tr class="odd">
+<td><code>R/ild_guardrail_registry.R</code></td>
+<td>Guardrail rule ids and evaluation helpers.</td>
+</tr>
+<tr class="even">
+<td><code>R/ild_diagnose_fillers.R</code></td>
+<td>Reference implementations for section contents.</td>
+</tr>
+</tbody>
+</table>
+<p>This file is the <strong>single extended normative spec</strong> for
+developers; keep it updated when slots or schemas change.</p>
+</div>
+<div id="see-also" class="section level2">
+<h2>See also</h2>
+<ul>
+<li><code>help(ild_diagnostics_bundle)</code>,
+<code>help(ild_tidy_schema)</code>,
+<code>help(ild_augment_schema)</code>,
+<code>help(guardrail_registry)</code>.</li>
+<li>User-facing short mirror:
+<code>system.file(&quot;CONTRACTS.md&quot;, package = &quot;tidyILD&quot;)</code> (if
+installed from source with <code>inst/</code>).</li>
+</ul>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

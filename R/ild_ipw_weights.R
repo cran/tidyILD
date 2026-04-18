@@ -6,6 +6,14 @@
 #' Use with [ild_ipw_refit()] for sensitivity analysis. This is diagnostic
 #' and sensitivity tooling, not a full MNAR solution.
 #'
+#' Also a **section provider** for [ild_diagnose()] when \code{.ipw} is present on the
+#' analysis data (see [ild_diagnostics_utilities]).
+#'
+#' @section Bundle integration:
+#' Adds \code{.ipw} to \code{x}. When that column is on the ILD data attached to the fit,
+#' [ild_diagnose()] fills \code{causal} (weight summaries) on \code{\link{ild_diagnostics_bundle}}.
+#'
+#' @family ild_diagnostics_utilities
 #' @param x An ILD object (see [is_ild()]); rows must align to the data used to fit \code{miss_fit}.
 #' @param miss_fit The return value of [ild_missing_model()] (list with \code{fit}, \code{p_missing}, etc.).
 #' @param stabilize Logical. If \code{TRUE} (default), use stabilized weights
@@ -13,6 +21,8 @@
 #' @param trim Numeric of length 2. Quantiles to trim weights (default \code{c(0.01, 0.99)}).
 #'   Weights below/above these quantiles are set to the quantile values.
 #' @return \code{x} with an added column \code{.ipw} (numeric). ILD attributes are preserved.
+#' @seealso [ild_diagnose()], [ild_diagnostics_bundle()], [ild_missing_model()],
+#'   [ild_iptw_weights()], [ild_ipcw_weights()], [ild_joint_msm_weights()]
 #' @export
 #' @examples
 #' set.seed(1)
@@ -37,15 +47,11 @@ ild_ipw_weights <- function(x, miss_fit, stabilize = TRUE, trim = c(0.01, 0.99))
   p_obs <- pmax(pmin(p_obs, 1), 1e-6)
   w <- if (stabilize) mean(p_obs, na.rm = TRUE) / p_obs else 1 / p_obs
   if (length(trim) >= 2L && is.numeric(trim)) {
-    qq <- stats::quantile(w, probs = trim, na.rm = TRUE)
-    w <- pmin(pmax(w, qq[1L]), qq[2L])
+    w <- .ild_ipw_trim(w, trim)
   }
   attrs <- attributes(x)
   x$.ipw <- w
-  for (a in c("ild_id", "ild_time", "ild_gap_threshold", "ild_n_units", "ild_n_obs", "ild_spacing", "class", "tidyILD")) {
-    if (!is.null(attrs[[a]])) attr(x, a) <- attrs[[a]]
-  }
-  if (!is.null(attrs$names)) attr(x, "names") <- names(x)
+  x <- .ild_ipw_restore_attrs(x, attrs)
   x <- ild_add_step(x, "ild_ipw_weights",
     list(stabilize = stabilize, trim = trim),
     list(created = ".ipw")
